@@ -4,119 +4,125 @@ import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.symbol.AbstractSymbol;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
+import io.github.potjerodekool.codegen.model.symbol.ModuleSymbol;
+import io.github.potjerodekool.codegen.model.type.ClassType;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class SymbolTable {
 
-    private final Map<Name, PackageSymbol> packages = new HashMap<>();
+    private final Map<Name, Map<ModuleSymbol, PackageSymbol>> packages = new HashMap<>();
 
-    private final Map<Name, ClassSymbol> classes = new HashMap<>();
+    private final Map<Name, Map<ModuleElement, ClassSymbol>> classes = new HashMap<>();
 
-    public boolean addClass(final ClassSymbol classSymbol) {
-        return add(classSymbol, classes);
-    }
+    private final ModuleSymbol NO_MODULE = new ModuleSymbol(Name.of(""));
 
-    public boolean addPackage(final PackageSymbol packageSymbol) {
-        return add(packageSymbol, packages);
-    }
+    private final NameResolver nameResolver = new InternalNameResolver();
 
-    private <T extends AbstractSymbol<T>> boolean add(final T symbol,
-                                                      final Map<Name, T> symbols) {
-        final Name name = getBinaryName(symbol);
+    public PackageSymbol enterPackage(final ModuleSymbol moduleElement,
+                                      final Name fullName) {
+        var packageSymbol = getPackage(moduleElement, fullName);
 
-        if (symbols.containsKey(name)) {
-            return false;
+        if (packageSymbol != null) {
+            return packageSymbol;
         }
-        symbols.put(name, symbol);
-        return true;
-    }
 
-    public ClassSymbol findClass(final Name name) {
-        return findSymbol(name, classes);
-    }
+        final var packagePart = fullName.packagePart();
+        final PackageSymbol enclosingPackage;
 
-    public PackageSymbol findPackage(final Name name) {
-        return findSymbol(name, packages);
-    }
+        if (!packagePart.isEmpty()) {
+            enclosingPackage = enterPackage(moduleElement, packagePart);
 
-    private  <T extends AbstractSymbol<T>> T findSymbol(final Name name,
-                                                        final Map<Name, T> symbols) {
-        final var internalName = name.toString().replace('.', '/');
-        return symbols.get(Name.of(internalName));
-    }
-
-    public PackageSymbol findOrCreatePackageSymbol(final Name name) {
-        var packageSymbol = findPackage(name);
-
-        if (packageSymbol == null) {
-            packageSymbol = PackageSymbol.create(Name.of(name));
-            addPackage(packageSymbol);
+        } else {
+            enclosingPackage = null;
         }
+
+        packageSymbol = new PackageSymbol(
+                fullName.shortName(),
+                enclosingPackage
+        );
+
+        doEnterPackage(moduleElement, packageSymbol);
         return packageSymbol;
     }
 
-    public ClassSymbol enterClass(final ElementKind kind,
-                                  final Name simpleName,
-                                  final NestingKind nestingKind,
-                                  final Element enclosingElement) {
-        final Name qualifiedName;
+    public PackageSymbol getPackage(final ModuleSymbol moduleElement,
+                                    final Name fullName) {
+        final var map = packages.get(nameResolver.resolveName(fullName));
 
-        if (enclosingElement == null) {
-            qualifiedName = simpleName;
+        if (map == null) {
+            return null;
         } else {
-            qualifiedName = Name.of(getQualifiedName(enclosingElement), simpleName);
+            return map.get(Objects.requireNonNullElse(moduleElement, NO_MODULE));
         }
+    }
 
-        var classSymbol = findClass(qualifiedName);
+    private void doEnterPackage(final ModuleSymbol moduleElement,
+                                final PackageSymbol packageSymbol) {
+        final var qualifiedName = nameResolver.resolveName(packageSymbol.getQualifiedName());
+        final var module = Objects.requireNonNullElse(moduleElement, NO_MODULE);
+        packages.computeIfAbsent(qualifiedName, (k) -> new HashMap<>()).put(module, packageSymbol);
+        packageSymbol.module = module;
+    }
+
+    public ClassSymbol enterClass(final ModuleSymbol moduleElement,
+                                  final Name fullName) {
+        var classSymbol = getClass(moduleElement, fullName);
 
         if (classSymbol != null) {
             return classSymbol;
-        } else {
-            classSymbol = ClassSymbol.create(kind, simpleName, nestingKind, enclosingElement);
-            addClass(classSymbol);
-            return classSymbol;
         }
+
+        classSymbol = new ClassSymbol(
+                ElementKind.CLASS,
+                fullName.shortName(),
+                NestingKind.TOP_LEVEL,
+                enterPackage(moduleElement, fullName.packagePart())
+        );
+        final var classType = new ClassType(classSymbol, true);
+        classSymbol.setType(classType);
+
+        doEnterClass(moduleElement, classSymbol);
+        return classSymbol;
     }
 
-    public Name getBinaryName(final Element type) {
-        final var binaryNameBuilder = new StringBuilder();
-        resolveBinaryName(type, binaryNameBuilder);
-        return Name.of(binaryNameBuilder.toString());
-    }
+    public ClassSymbol getClass(final ModuleSymbol moduleElement,
+                                final Name fullName) {
+        final var map = classes.get(nameResolver.resolveName(fullName));
 
-    public void resolveBinaryName(final Element element,
-                                  final StringBuilder binaryNameBuilder) {
-        final var enclosingElement = element.getEnclosingElement();
+        if (map == null) {
+            return null;
+        } else {
+            final var classSymbol = map.get(Objects.requireNonNullElse(moduleElement, NO_MODULE));
 
-        if (enclosingElement != null && !isDefaultPackage(enclosingElement)) {
-            resolveBinaryName(enclosingElement, binaryNameBuilder);
-
-            if (element instanceof TypeElement typeElement && typeElement.getNestingKind() == NestingKind.MEMBER) {
-                binaryNameBuilder.append("$");
+            if (classSymbol != null) {
+                return classSymbol;
             } else {
-                binaryNameBuilder.append("/");
+                return map.get(ModuleSymbol.UNNAMED);
             }
         }
+    }
 
-        if (element instanceof PackageSymbol packageSymbol) {
-            binaryNameBuilder.append(packageSymbol.getQualifiedName().toString().replace('.', '/'));
-        } else {
-            binaryNameBuilder.append(element.getSimpleName());
+    public void doEnterClass(final ModuleSymbol moduleElement,
+                             final ClassSymbol classSymbol) {
+        final var qualifiedName = nameResolver.resolveName(classSymbol.getQualifiedName());
+        final var module = Objects.requireNonNullElse(moduleElement, NO_MODULE);
+        classes.computeIfAbsent(qualifiedName, (k) -> new HashMap<>()).put(module, classSymbol);
+
+        final var enclosingElement = (AbstractSymbol) classSymbol.getEnclosingElement();
+
+        if (enclosingElement != null) {
+            enclosingElement.addEnclosedElement(classSymbol);
         }
     }
 
-    private boolean isDefaultPackage(final Element element) {
-        return element instanceof PackageElement packageElement
-                && packageElement.isUnnamed();
-    }
-
-    public Name getQualifiedName(final Element element) {
-        if (element instanceof QualifiedNameable qualifiedNameable) {
-            return qualifiedNameable.getQualifiedName();
-        } else {
-            return element.getSimpleName();
-        }
+    public void addClass(final ModuleSymbol moduleElement,
+                         final ClassSymbol classSymbol,
+                         final Name fullName) {
+        final var qualifiedName = nameResolver.resolveName(fullName);
+        final var module = Objects.requireNonNullElse(moduleElement, NO_MODULE);
+        classes.computeIfAbsent(qualifiedName, (k) -> new HashMap<>()).put(module, classSymbol);
     }
 }

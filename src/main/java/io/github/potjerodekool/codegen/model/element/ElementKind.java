@@ -25,17 +25,9 @@ public enum ElementKind {
     MODULE,
     RECORD,
     RECORD_COMPONENT,
-    BINDING_VARIABLE;
+    BINDING_VARIABLE,
 
-    public boolean isClass() {
-        return this == CLASS || this == ENUM || this == RECORD;
-    }
+    //Kotlin
+    OBJECT;
 
-    public boolean isInterface() {
-        return this == INTERFACE || this == ANNOTATION_TYPE;
-    }
-
-    public boolean isField() {
-        return this == FIELD || this == ENUM_CONSTANT;
-    }
 }

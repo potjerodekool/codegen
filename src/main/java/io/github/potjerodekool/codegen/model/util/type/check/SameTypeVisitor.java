@@ -4,6 +4,8 @@ import static io.github.potjerodekool.codegen.model.util.Elements.getQualifiedNa
 
 import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.PackageType;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 
 import java.util.stream.IntStream;
 

@@ -2,16 +2,17 @@ package io.github.potjerodekool.codegen.model;
 
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
-import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
+import io.github.potjerodekool.codegen.model.tree.JTreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 
 import java.util.List;
 
 public abstract class AbstractAstVisitor<R,P> implements ElementVisitor<R,P>,
         TypeVisitor<R,P>,
-        TreeVisitor<R,P>,
+        JTreeVisitor<R,P>,
         AnnotationValueVisitor<R,P> {
 
     @Override
@@ -176,16 +177,15 @@ public abstract class AbstractAstVisitor<R,P> implements ElementVisitor<R,P>,
     }
 
     @Override
-    public R visitNameExpression(final NameExpression nameExpression,
-                                 final P param) {
-        return visitUnknown(nameExpression, param);
+    public R visitIdentifierExpression(final IdentifierExpression identifierExpression,
+                                       final P param) {
+        return visitUnknown(identifierExpression, param);
     }
 
     @Override
     public R visitFieldAccessExpression(final FieldAccessExpression fieldAccessExpression,
                                         final P param) {
         fieldAccessExpression.getScope().accept(this, param);
-        fieldAccessExpression.getField().accept(this, param);
         return null;
     }
 
@@ -225,8 +225,7 @@ public abstract class AbstractAstVisitor<R,P> implements ElementVisitor<R,P>,
         return null;
     }
 
-    @Override
-    public R visitVariableDeclaration(final VariableDeclaration variableDeclaration, final P param) {
+    public R visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final P param) {
         variableDeclaration.getInitExpression().ifPresent(it -> it.accept(this, param));
         return null;
     }
@@ -234,7 +233,8 @@ public abstract class AbstractAstVisitor<R,P> implements ElementVisitor<R,P>,
     @Override
     public R visitNewClassExpression(final NewClassExpression newClassExpression,
                                      final P param) {
-        newClassExpression.getClassType().accept(this, param);
+        newClassExpression.getClazz().accept(this, param);
+        newClassExpression.getArguments().forEach(arg -> arg.accept(this, param));
         return null;
     }
 
@@ -329,7 +329,6 @@ public abstract class AbstractAstVisitor<R,P> implements ElementVisitor<R,P>,
     public R visitWildcard(final WildcardType t,
                            final P param) {
         t.getAnnotationMirrors().forEach(it -> it.accept(this, param));
-        t.getTypeArguments().forEach(it -> it.accept(this, param));
         if (t.getExtendsBound() != null) {
             t.getExtendsBound().accept(this, param);
         }
@@ -375,7 +374,7 @@ public abstract class AbstractAstVisitor<R,P> implements ElementVisitor<R,P>,
     }
 
     @Override
-    public R visitVarType(final VarTypeImpl varType,
+    public R visitVarType(final VarType varType,
                           final P param) {
         return null;
     }

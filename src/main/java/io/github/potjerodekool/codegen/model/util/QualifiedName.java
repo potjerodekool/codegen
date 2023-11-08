@@ -23,6 +23,10 @@ public record QualifiedName(Name packageName,
         }
     }
 
+    public String asString() {
+        return toString();
+    }
+
     @Override
     public String toString() {
         if (packageName.contentEquals("")) {

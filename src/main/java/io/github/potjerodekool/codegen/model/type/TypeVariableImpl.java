@@ -1,13 +1,17 @@
 package io.github.potjerodekool.codegen.model.type;
 
+import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
 import io.github.potjerodekool.codegen.model.symbol.TypeVariableSymbol;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class TypeVariableImpl extends AbstractType implements TypeVariable {
+import java.lang.annotation.Annotation;
+import java.util.List;
+
+public class TypeVariableImpl implements TypeVariable {
 
     private final TypeVariableSymbol typeVariableSymbol;
-    private AbstractType upperBound = null;
-    private AbstractType lowerBound = null;
+    private TypeMirror upperBound = null;
+    private TypeMirror lowerBound = null;
 
     public TypeVariableImpl(final TypeVariableSymbol typeVariableSymbol) {
         this.typeVariableSymbol = typeVariableSymbol;
@@ -19,8 +23,18 @@ public class TypeVariableImpl extends AbstractType implements TypeVariable {
     }
 
     @Override
-    public <R, P> R accept(final Visitor<R, P> visitor, final P p) {
+    public <R, P> R accept(final TypeMirror.Visitor<R, P> visitor, final P p) {
         return visitor.visitTypeVariable(this, p);
+    }
+
+    @Override
+    public TypeMirror asNullableType() {
+        return this;
+    }
+
+    @Override
+    public TypeMirror asNonNullableType() {
+        return this;
     }
 
     @Override
@@ -33,7 +47,7 @@ public class TypeVariableImpl extends AbstractType implements TypeVariable {
         return upperBound;
     }
 
-    public void setUpperBound(final AbstractType upperBound) {
+    public void setUpperBound(final TypeMirror upperBound) {
         this.upperBound = upperBound;
     }
 
@@ -42,7 +56,7 @@ public class TypeVariableImpl extends AbstractType implements TypeVariable {
         return lowerBound;
     }
 
-    public void setLowerBound(final AbstractType lowerBound) {
+    public void setLowerBound(final TypeMirror lowerBound) {
         this.lowerBound = lowerBound;
     }
 
@@ -53,6 +67,30 @@ public class TypeVariableImpl extends AbstractType implements TypeVariable {
 
     @Override
     public String toString() {
-        return typeVariableSymbol.getSimpleName().toString();
+        final var builder = new StringBuilder();
+        builder.append(typeVariableSymbol.getSimpleName());
+
+        if (upperBound != null) {
+            builder.append(" extends ").append(upperBound);
+        } else if (lowerBound != null) {
+            builder.append(" super ").append(lowerBound);
+        }
+
+        return builder.toString();
+    }
+
+    @Override
+    public List<? extends AnnotationMirror> getAnnotationMirrors() {
+        return List.of();
+    }
+
+    @Override
+    public <A extends Annotation> A getAnnotation(final Class<A> annotationType) {
+        return null;
+    }
+
+    @Override
+    public <A extends Annotation> A[] getAnnotationsByType(final Class<A> annotationType) {
+        return null;
     }
 }

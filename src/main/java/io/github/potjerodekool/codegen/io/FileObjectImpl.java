@@ -19,22 +19,22 @@ public class FileObjectImpl implements FileObject {
     }
 
     @Override
-    public InputStream openInputStream() throws IOException {
+    public InputStream openInputStream() {
         return null;
     }
 
     @Override
-    public OutputStream openOutputStream() throws IOException {
+    public OutputStream openOutputStream() {
         return null;
     }
 
     @Override
-    public Reader openReader(final boolean ignoreEncodingErrors) throws IOException {
+    public Reader openReader(final boolean ignoreEncodingErrors) {
         return null;
     }
 
     @Override
-    public CharSequence getCharContent(final boolean ignoreEncodingErrors) throws IOException {
+    public CharSequence getCharContent(final boolean ignoreEncodingErrors) {
         return null;
     }
 

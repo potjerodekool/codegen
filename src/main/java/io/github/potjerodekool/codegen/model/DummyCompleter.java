@@ -15,7 +15,7 @@ public class DummyCompleter implements Completer {
     }
 
     @Override
-    public void complete(final AbstractSymbol<?> symbol) {
+    public void complete(final AbstractSymbol symbol) {
     }
 
 }

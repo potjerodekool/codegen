@@ -3,6 +3,7 @@ package io.github.potjerodekool.codegen.model.util.type.check;
 import io.github.potjerodekool.codegen.loader.TypeMapping;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.util.type.SimpleVisitor;
 import io.github.potjerodekool.codegen.model.util.type.Types;
 
@@ -153,7 +154,7 @@ public class AssignableVisitor extends SimpleVisitor<Boolean, TypeMirror> {
     }
 
     @Override
-    public Boolean visitVarType(final VarTypeImpl varType, final TypeMirror typeMirror) {
+    public Boolean visitVarType(final VarType varType, final TypeMirror typeMirror) {
         return false;
     }
 }

@@ -1,28 +1,34 @@
 package io.github.potjerodekool.codegen.model.tree.type;
 
-import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
+import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
 import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.AbstractExpression;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.type.TypeKind;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AnnotatedTypeExpression extends AbstractExpression implements TypeExpression {
 
     private final Expression identifier;
 
-    private final List<AnnotationMirror> annotations;
+    private final List<AnnotationExpression> annotations;
 
     private final boolean isNullable;
 
+    public AnnotatedTypeExpression(final Expression identifier) {
+        this(identifier, new ArrayList<>());
+    }
+
+
     public AnnotatedTypeExpression(final Expression identifier,
-                                   final List<AnnotationMirror> annotations) {
+                                   final List<AnnotationExpression> annotations) {
         this(identifier, annotations, false);
     }
 
     public AnnotatedTypeExpression(final Expression identifier,
-                                   final List<AnnotationMirror> annotations,
+                                   final List<AnnotationExpression> annotations,
                                    final boolean isNullable) {
         this.identifier = identifier;
         this.annotations = annotations;
@@ -33,7 +39,7 @@ public class AnnotatedTypeExpression extends AbstractExpression implements TypeE
         return identifier;
     }
 
-    public List<AnnotationMirror> getAnnotations() {
+    public List<AnnotationExpression> getAnnotations() {
         return annotations;
     }
 

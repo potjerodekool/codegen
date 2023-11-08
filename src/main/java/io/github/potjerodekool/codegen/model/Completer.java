@@ -6,5 +6,5 @@ public interface Completer {
 
     boolean isComplete();
 
-    void complete(AbstractSymbol<?> symbol);
+    void complete(AbstractSymbol symbol);
 }

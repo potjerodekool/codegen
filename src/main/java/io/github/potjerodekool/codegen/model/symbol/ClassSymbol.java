@@ -1,8 +1,9 @@
 package io.github.potjerodekool.codegen.model.symbol;
 
 import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.type.ClassType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
+import io.github.potjerodekool.codegen.resolve.Scope;
+import io.github.potjerodekool.codegen.resolve.WritableScope;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
@@ -10,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement {
+public class ClassSymbol extends TypeSymbol implements TypeElement {
 
     private @Nullable TypeMirror superType = null;
 
@@ -20,28 +21,47 @@ public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement 
 
     private final List<TypeParameterElement> typeParameters = new ArrayList<>();
 
-    private final NestingKind nestingKind;
+    private NestingKind nestingKind;
 
     private Name qualifiedName;
 
-    ClassSymbol(final ElementKind kind,
-                final Name simpleName,
-                final NestingKind nestingKind,
-                final Element enclosingElement) {
+    public WritableScope scope;
+
+    public ClassSymbol(final ElementKind kind,
+                          final CharSequence simpleName,
+                          final NestingKind nestingKind,
+                          final AbstractSymbol enclosingElement) {
         super(kind, simpleName, new ArrayList<>());
         this.nestingKind = nestingKind;
-        this.qualifiedName = simpleName;
         setEnclosingElement(enclosingElement);
     }
 
-    public static ClassSymbol create(final ElementKind kind,
-                                     final Name simpleName,
-                                     final NestingKind nestingKind,
+    @Override
+    public void setEnclosingElement(final @Nullable Element enclosingElement) {
+        super.setEnclosingElement(enclosingElement);
+        setQualifiedName(createQualifiedName(getSimpleName(), enclosingElement));
+    }
+
+    private Name createQualifiedName(final CharSequence simpleName,
                                      final Element enclosingElement) {
-        final var classSymbol = new ClassSymbol(kind, simpleName, nestingKind, enclosingElement);
-        final var classType = new ClassType(classSymbol, false);
-        classSymbol.setType(classType);
-        return classSymbol;
+        if (enclosingElement == null || isDefaultPackage(enclosingElement)) {
+            return Name.of(simpleName);
+        } else {
+            final Name parentName;
+
+            if (enclosingElement instanceof QualifiedNameable qualifiedNameable) {
+                parentName = qualifiedNameable.getQualifiedName();
+            } else {
+                parentName = enclosingElement.getSimpleName();
+            }
+
+            return parentName.append(simpleName);
+        }
+    }
+
+    private boolean isDefaultPackage(final Element element) {
+        return element instanceof PackageElement packageElement
+                && packageElement.isUnnamed();
     }
 
     @Override
@@ -70,53 +90,12 @@ public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement 
         this.interfaces.add(interfaceType);
     }
 
-    public MethodSymbol addPrimaryConstructor() {
-        final var pc = MethodSymbol.createConstructor(getSimpleName());
-        this.primaryConstructor = pc;
-        return pc;
-    }
-
-    public MethodSymbol addConstructor(final Modifier... modifiers) {
-        final var constructor = MethodSymbol.createConstructor(getSimpleName());
-        constructor.addModifiers(modifiers);
-        addEnclosedElement(constructor);
-        return constructor;
-    }
-
-    public MethodSymbol addMethod(final String name,
-                                  final Modifier... modifiers) {
-        return addMethod(Name.of(name), modifiers);
-    }
-
-    public MethodSymbol addMethod(final Name name,
-                                  final Modifier... modifiers) {
-        final var constructor = MethodSymbol.createMethod(name);
-        constructor.addModifiers(modifiers);
-        addEnclosedElement(constructor);
-        return constructor;
-    }
-
-    public MethodSymbol addMethod(final String name,
-                                  final TypeMirror returnType,
-                                  final Modifier... modifiers) {
-        return addMethod(Name.of(name), returnType, modifiers);
-    }
-
-    public MethodSymbol addMethod(final Name name,
-                                  final TypeMirror returnType,
-                                  final Modifier... modifiers) {
-        final var constructor = MethodSymbol.createMethod(name, returnType);
-        constructor.addModifiers(modifiers);
-        addEnclosedElement(constructor);
-        return constructor;
-    }
-
-    public void addPrimaryConstructor(final MethodSymbol primaryConstructor) {
-        this.primaryConstructor = primaryConstructor;
-    }
-
     public @Nullable MethodSymbol getPrimaryConstructor() {
         return primaryConstructor;
+    }
+
+    protected void setPrimaryConstructor(final MethodSymbol primaryConstructor) {
+        this.primaryConstructor = primaryConstructor;
     }
 
     @Override
@@ -124,50 +103,17 @@ public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement 
         return nestingKind;
     }
 
+    public void setNestingKind(final NestingKind nestingKind) {
+        this.nestingKind = nestingKind;
+    }
+
     @Override
     public Name getQualifiedName() {
         return qualifiedName;
     }
 
-    @Override
-    public void setEnclosingElement(final @Nullable Element enclosingElement) {
-        super.setEnclosingElement(enclosingElement);
-
-        if (enclosingElement == null) {
-            this.qualifiedName = getSimpleName();
-        } else {
-            final Name enclosingName;
-
-            if (enclosingElement instanceof QualifiedNameable qualifiedNameable) {
-                enclosingName = qualifiedNameable.getQualifiedName();
-            } else {
-                enclosingName = enclosingElement.getSimpleName();
-            }
-
-            this.qualifiedName = Name.of(enclosingName, getSimpleName());
-            /*
-            if (nestingKind == NestingKind.MEMBER) {
-                this.qualifiedName = Name.createInnerClassName(enclosingName, getSimpleName());
-            } else {
-                this.qualifiedName = Name.of(enclosingName, getSimpleName());
-            }
-            */
-        }
-    }
-
-    public VariableSymbol addField(final TypeMirror fieldType,
-                                   final String name,
-                                   final Modifier... modifiers) {
-        return addField(fieldType, Name.of(name), modifiers);
-    }
-
-    public VariableSymbol addField(final TypeMirror fieldType,
-                                   final Name name,
-                                   final Modifier... modifiers) {
-        final var field = VariableSymbol.createField(name, fieldType)
-            .addModifiers(modifiers);
-        addEnclosedElement(field);
-        return field;
+    public void setQualifiedName(final Name qualifiedName) {
+        this.qualifiedName = qualifiedName;
     }
 
     @Override
@@ -180,7 +126,7 @@ public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement 
         final var stringBuilder  = new StringBuilder();
         stringBuilder.append(getQualifiedName());
 
-        if (typeParameters.size() > 0) {
+        if (!typeParameters.isEmpty()) {
             stringBuilder.append("<");
 
             stringBuilder.append(typeParameters.stream()
@@ -194,7 +140,7 @@ public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement 
             stringBuilder.append(" extends ").append(superType);
         }
 
-        if (interfaces.size() > 0) {
+        if (!interfaces.isEmpty()) {
             if (getKind() == ElementKind.CLASS) {
                 stringBuilder.append(" implements ");
             } else {
@@ -209,4 +155,8 @@ public class ClassSymbol extends TypeSymbol<ClassSymbol> implements TypeElement 
         return stringBuilder.toString();
     }
 
+    @Override
+    public WritableScope members() {
+        return scope;
+    }
 }

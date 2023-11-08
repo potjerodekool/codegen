@@ -10,15 +10,16 @@ import java.util.List;
 public abstract class AbstractType implements TypeMirror {
 
     private final List<AnnotationMirror> annotations = new ArrayList<>();
-    private final List<TypeMirror> typeArguments = new ArrayList<>();
+    private final List<TypeMirror> typeArguments;
 
     public AbstractType() {
+        this.typeArguments = new ArrayList<>();
     }
 
     public AbstractType(final List<? extends AnnotationMirror> annotations,
-                        final List<? extends TypeMirror> typeArguments) {
+                        final List<TypeMirror> typeArguments) {
         this.annotations.addAll(annotations);
-        this.typeArguments.addAll(typeArguments);
+        this.typeArguments = typeArguments;
     }
 
     @Override

@@ -1,7 +1,6 @@
 package io.github.potjerodekool.codegen.model.type.kotlin;
 
 import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
-import io.github.potjerodekool.codegen.model.element.Element;
 import io.github.potjerodekool.codegen.model.type.NoType;
 import io.github.potjerodekool.codegen.model.type.TypeKind;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;

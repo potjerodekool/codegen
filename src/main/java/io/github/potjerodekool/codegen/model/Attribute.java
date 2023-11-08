@@ -6,6 +6,7 @@ import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
 import io.github.potjerodekool.codegen.model.symbol.VariableSymbol;
 import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
+import io.github.potjerodekool.codegen.model.type.java.immutable.JavaVoidType;
 import io.github.potjerodekool.codegen.model.util.Elements;
 
 import java.util.*;
@@ -80,7 +81,7 @@ public abstract class Attribute implements AnnotationValue {
                                               final Name attributeName,
                                               final AnnotationValue elementValue) {
         return new Attribute.Compound((DeclaredType) classSymbol.asType(), Map.of(
-                MethodSymbol.createMethod(attributeName), elementValue
+                new MethodSymbol(ElementKind.METHOD, JavaVoidType.INSTANCE, attributeName), elementValue
         ));
     }
 
@@ -90,7 +91,9 @@ public abstract class Attribute implements AnnotationValue {
 
     public static Attribute.Enum createEnumAttribute(final ClassSymbol classSymbol,
                                                      final Name variableName) {
-        final var variableElement = VariableSymbol.createField(variableName.toString(), classSymbol.asType());
+        final var variableElement = new VariableSymbol(ElementKind.FIELD, variableName);
+        variableElement.setType(classSymbol.asType());
+
         variableElement.setEnclosingElement(classSymbol);
         return createEnumAttribute(variableElement);
     }
@@ -243,7 +246,7 @@ public abstract class Attribute implements AnnotationValue {
         }
 
         public void addElementValue(final Name name, final AnnotationValue value) {
-            this.elementValues.put(MethodSymbol.createMethod(name), value);
+            this.elementValues.put(new MethodSymbol(ElementKind.METHOD, JavaVoidType.INSTANCE, name), value);
         }
 
         @Override
@@ -252,7 +255,7 @@ public abstract class Attribute implements AnnotationValue {
             stringBuilder.append("@");
             stringBuilder.append(annotationType);
 
-            if (elementValues.size() > 0) {
+            if (!elementValues.isEmpty()) {
                 stringBuilder.append("(");
 
                 stringBuilder.append(

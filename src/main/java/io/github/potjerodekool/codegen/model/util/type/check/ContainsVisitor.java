@@ -1,6 +1,6 @@
 package io.github.potjerodekool.codegen.model.util.type.check;
 
-import io.github.potjerodekool.codegen.model.element.ElementFilter;
+import io.github.potjerodekool.codegen.model.element.java.ElementFilter;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;

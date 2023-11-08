@@ -8,16 +8,20 @@ import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 import io.github.potjerodekool.codegen.model.util.Elements;
+import io.github.potjerodekool.codegen.resolve.WritableScope;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.util.*;
 
 @SuppressWarnings("initialization.fields.uninitialized")
-public abstract class AbstractSymbol<E extends AbstractSymbol<E>> implements AstNode, io.github.potjerodekool.codegen.model.element.Element {
+public abstract class AbstractSymbol implements AstNode, Element {
 
-    private final ElementKind kind;
+    private ElementKind kind;
+
     private Name simpleName;
+
+    private final Set<Modifier> modifiers = new HashSet<>();
 
     private TypeMirror type;
 
@@ -25,26 +29,33 @@ public abstract class AbstractSymbol<E extends AbstractSymbol<E>> implements Ast
 
     private final List<Element> enclosedElements = new ArrayList<>();
 
-    private final Set<Modifier> modifiers = new LinkedHashSet<>();
-
     private final List<AnnotationMirror> annotations = new ArrayList<>();
 
     private Completer completer = DummyCompleter.INSTANCE;
 
     @SuppressWarnings("initialization.fields.uninitialized")
     protected AbstractSymbol(final ElementKind kind,
-                             final Name simpleName) {
+                             final CharSequence simpleName) {
         this(kind, simpleName, new ArrayList<>());
     }
 
     @SuppressWarnings("method.invocation")
     protected AbstractSymbol(final ElementKind kind,
-                             final Name simpleName,
+                             final CharSequence simpleName,
                              final List<AnnotationMirror> annotations) {
-        validateSimpleName(simpleName);
         this.kind = kind;
-        this.simpleName = simpleName;
+        validateSimpleName(simpleName);
+        this.simpleName = Name.of(simpleName);
         this.annotations.addAll(annotations);
+    }
+
+    @Override
+    public ElementKind getKind() {
+        return kind;
+    }
+
+    public void setKind(final ElementKind kind) {
+        this.kind = kind;
     }
 
     public void setSimpleName(final Name simpleName) {
@@ -52,7 +63,7 @@ public abstract class AbstractSymbol<E extends AbstractSymbol<E>> implements Ast
         this.simpleName = simpleName;
     }
 
-    protected void validateSimpleName(final Name simpleName) {
+    protected void validateSimpleName(final CharSequence simpleName) {
         if (simpleName.toString().contains(".")) {
             throw new IllegalArgumentException("Not a simpleName " + simpleName);
         }
@@ -63,13 +74,21 @@ public abstract class AbstractSymbol<E extends AbstractSymbol<E>> implements Ast
     }
 
     @Override
-    public ElementKind getKind() {
-        return kind;
+    public Name getSimpleName() {
+        return simpleName;
+    }
+
+    public Name getQualifiedName() {
+        return simpleName;
     }
 
     @Override
-    public Name getSimpleName() {
-        return simpleName;
+    public Set<? extends Modifier> getModifiers() {
+        return modifiers;
+    }
+
+    public void addModifiers(final Set<Modifier> modifiers) {
+        this.modifiers.addAll(modifiers);
     }
 
     @Override
@@ -93,49 +112,10 @@ public abstract class AbstractSymbol<E extends AbstractSymbol<E>> implements Ast
 
     public void addEnclosedElement(final Element enclosedElement) {
         this.enclosedElements.add(enclosedElement);
-        ((AbstractSymbol<?>)enclosedElement).setEnclosingElement(this);
     }
 
     public void removeEnclosedElement(final Element enclosedElement) {
-        if (this.enclosedElements.remove(enclosedElement)) {
-            ((AbstractSymbol<?>)enclosedElement).setEnclosingElement(null);
-        }
-    }
-
-    @Override
-    public Set<Modifier> getModifiers() {
-        return Collections.unmodifiableSet(modifiers);
-    }
-
-    public boolean isStatic() {
-        return hasModifier(Modifier.FINAL);
-    }
-
-    public boolean isFinal() {
-        return hasModifier(Modifier.FINAL);
-    }
-
-    public E addModifier(final Modifier modifier) {
-        this.modifiers.add(modifier);
-        return (E) this;
-    }
-
-    public E addModifiers(final Modifier... modifier) {
-        this.modifiers.addAll(Arrays.asList(modifier));
-        return (E) this;
-    }
-
-    public E addModifiers(final Set<Modifier> modifiers) {
-        this.modifiers.addAll(modifiers);
-        return (E) this;
-    }
-
-    public void removeModifier(final Modifier modifier) {
-        this.modifiers.remove(modifier);
-    }
-
-    public boolean hasModifier(final Modifier modifier) {
-        return this.modifiers.contains(modifier);
+        this.enclosedElements.remove(enclosedElement);
     }
 
     @Override
@@ -185,5 +165,17 @@ public abstract class AbstractSymbol<E extends AbstractSymbol<E>> implements Ast
 
     public void setCompleter(final Completer completer) {
         this.completer = completer;
+    }
+
+    public void removeModifier(final Modifier modifier) {
+        this.modifiers.remove(modifier);
+    }
+
+    public void addModifiers(final Modifier... modifiers) {
+        this.modifiers.addAll(List.of(modifiers));
+    }
+
+    public WritableScope members() {
+        return null;
     }
 }

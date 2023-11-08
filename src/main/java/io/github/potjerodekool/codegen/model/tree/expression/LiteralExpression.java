@@ -1,7 +1,6 @@
 package io.github.potjerodekool.codegen.model.tree.expression;
 
 import io.github.potjerodekool.codegen.model.tree.type.TypeExpression;
-import io.github.potjerodekool.codegen.model.type.TypeMirror;
 
 public interface LiteralExpression extends Expression {
 
@@ -50,16 +49,16 @@ public interface LiteralExpression extends Expression {
         return new StringValueLiteralExpression("0", LiteralType.INT);
     }
 
-    static LiteralExpression createIntLiteralExpression(final String value) {
-        return new StringValueLiteralExpression(value, LiteralType.INT);
+    static LiteralExpression createIntLiteralExpression(final int value) {
+        return new StringValueLiteralExpression(Integer.toString(value), LiteralType.INT);
     }
 
     static LiteralExpression createLongLiteralExpression() {
         return new StringValueLiteralExpression("0", LiteralType.LONG);
     }
 
-    static LiteralExpression createLongLiteralExpression(final String value) {
-        return new StringValueLiteralExpression(value, LiteralType.LONG);
+    static LiteralExpression createLongLiteralExpression(long value) {
+        return new StringValueLiteralExpression(Long.toString(value), LiteralType.LONG);
     }
 
     static LiteralExpression createFloatLiteralExpression() {
@@ -80,6 +79,10 @@ public interface LiteralExpression extends Expression {
 
     static LiteralExpression createStringLiteralExpression(final String value) {
         return new StringValueLiteralExpression(value, LiteralType.STRING);
+    }
+
+    static LiteralExpression createStringLiteralExpression() {
+        return new StringValueLiteralExpression("", LiteralType.STRING);
     }
 
     LiteralType getLiteralType();

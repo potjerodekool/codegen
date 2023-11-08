@@ -1,32 +1,28 @@
 package io.github.potjerodekool.codegen.model.tree;
 
-import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
-import io.github.potjerodekool.codegen.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.*;
 
-public class MethodDeclaration implements ElementTree {
+public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implements Tree, WithMetaData {
 
-    private final Name simpleName;
-    private final ElementKind kind;
+    private Name simpleName;
 
-    private final Set<Modifier> modifiers = new HashSet<>();
     private final List<Tree> enclosed = new ArrayList<>();
     private Tree enclosing;
     private final List<AnnotationExpression> annotations = new ArrayList<>();
 
     private Expression returnType;
 
-    private final List<TypeParameter> typeParameters;
+    private final List<TypeParameter> typeParameters = new ArrayList<>();
 
-    private final List<VariableDeclaration> parameters = new ArrayList<>();
+    private final List<VariableDeclaration<?>> parameters = new ArrayList<>();
 
     private @Nullable BlockStatement body;
 
@@ -34,17 +30,18 @@ public class MethodDeclaration implements ElementTree {
 
     private final Map<String, Object> metaData = new HashMap<>();
 
-    public MethodDeclaration(final Name simpleName,
-                             final ElementKind kind,
+    public MethodDeclaration(final CharSequence simpleName,
                              final Expression returnType,
                              final List<TypeParameter> typeParameters,
-                             final List<VariableDeclaration> parameters, final @Nullable BlockStatement body) {
-        this.simpleName = simpleName;
-        this.kind = kind;
+                             final List<? extends VariableDeclaration<?>> parameters, final @Nullable BlockStatement body) {
+        this.simpleName = Name.of(simpleName);
         this.returnType = returnType;
-        this.typeParameters = typeParameters;
+        this.typeParameters.addAll(typeParameters);
         this.parameters.addAll(parameters);
         this.body = body;
+    }
+
+    public MethodDeclaration() {
     }
 
     public Map<String, Object> getMetaData() {
@@ -55,24 +52,9 @@ public class MethodDeclaration implements ElementTree {
         return simpleName;
     }
 
-    public ElementKind getKind() {
-        return kind;
-    }
-
-    public void addModifier(final Modifier modifier) {
-        this.modifiers.add(modifier);
-    }
-
-    public void addModifiers(final Modifier... modifiers) {
-        addModifiers(List.of(modifiers));
-    }
-
-    public void addModifiers(final Collection<Modifier> modifiers) {
-        this.modifiers.addAll(modifiers);
-    }
-
-    public Set<Modifier> getModifiers() {
-        return modifiers;
+    public MD setSimpleName(final Name simpleName) {
+        this.simpleName = simpleName;
+        return (MD) this;
     }
 
     public List<Tree> getEnclosed() {
@@ -99,50 +81,60 @@ public class MethodDeclaration implements ElementTree {
         return annotations;
     }
 
-    public void addAnnotation(final AnnotationExpression annotationExpression) {
+    public MD annotation(final String className) {
+        annotation(new AnnotationExpression(className));
+        return (MD) this;
+    }
+    public MD annotation(final AnnotationExpression annotationExpression) {
         this.annotations.add(annotationExpression);
+        return (MD) this;
+    }
+
+    public void removeAnnotation(final AnnotationExpression annotationExpression) {
+        this.annotations.remove(annotationExpression);
+    }
+
+    public AnnotationExpression getAnnotation(final String name) {
+        return this.annotations.stream()
+                .filter(annotationExpression -> annotationExpression.getAnnotationType().getName().contentEquals(name))
+                .findFirst()
+                .orElse(null);
     }
 
     public Expression getReturnType() {
         return returnType;
     }
 
-    public void setReturnType(final Expression returnType) {
+    public MD setReturnType(final Expression returnType) {
         this.returnType = returnType;
+        return (MD) this;
     }
 
     public List<TypeParameter> getTypeParameters() {
         return typeParameters;
     }
 
-    public List<VariableDeclaration> getParameters() {
+    public MD addTypeParameters(final List<TypeParameter> typeParameters) {
+        this.typeParameters.addAll(typeParameters);
+        return (MD) this;
+    }
+
+    public List<VariableDeclaration<?>> getParameters() {
         return parameters;
     }
 
-    public void addParameter(final VariableDeclaration parameter) {
+    public MD addParameter(final VariableDeclaration<?> parameter) {
         this.parameters.add(parameter);
+        return (MD) this;
     }
 
     public Optional<BlockStatement> getBody() {
         return Optional.ofNullable(body);
     }
 
-    public void setBody(final BlockStatement body) {
+    public MD setBody(final BlockStatement body) {
         this.body = body;
-    }
-
-    @Override
-    public TypeMirror getType() {
-        return null;
-    }
-
-    @Override
-    public void setType(final TypeMirror type) {
-    }
-
-    @Override
-    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
-        return visitor.visitMethodDeclaration(this, param);
+        return (MD) this;
     }
 
     public MethodSymbol getMethodSymbol() {
@@ -152,4 +144,6 @@ public class MethodDeclaration implements ElementTree {
     public void setMethodSymbol(final MethodSymbol methodSymbol) {
         this.methodSymbol = methodSymbol;
     }
+
+    public abstract Set<? extends Modifier> getModifiers();
 }

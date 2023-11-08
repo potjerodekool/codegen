@@ -68,7 +68,7 @@ public class FileManagerImpl implements FileManager {
                                final String relativeName) {
         final String fileName;
 
-        if (moduleAndPkg != null && moduleAndPkg.length() > 0) {
+        if (moduleAndPkg != null && !moduleAndPkg.isEmpty()) {
             fileName = moduleAndPkg.toString().replace(".", "/") + "/" +  relativeName;
         } else {
             fileName = relativeName;

@@ -3,6 +3,7 @@ package io.github.potjerodekool.codegen.model.util.type;
 import io.github.potjerodekool.codegen.model.element.Element;
 import io.github.potjerodekool.codegen.model.element.TypeElement;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 
 import java.util.List;
 

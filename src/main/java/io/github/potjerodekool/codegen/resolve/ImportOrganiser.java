@@ -2,18 +2,20 @@ package io.github.potjerodekool.codegen.resolve;
 
 import io.github.potjerodekool.codegen.model.Attribute;
 import io.github.potjerodekool.codegen.model.CompilationUnit;
-import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
-import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.symbol.*;
-import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
-import io.github.potjerodekool.codegen.model.tree.type.AnnotatedTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.type.ParameterizedType;
-import io.github.potjerodekool.codegen.model.tree.type.PrimitiveTypeExpression;
+import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.util.Elements;
 import io.github.potjerodekool.codegen.model.util.QualifiedName;
 
@@ -21,12 +23,22 @@ import java.util.List;
 
 public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
         TypeVisitor<Void, CompilationUnit>,
-        TreeVisitor<Void, CompilationUnit>,
+        JTreeVisitor<Void, CompilationUnit>,
+        KTreeVisitor<Void, CompilationUnit>,
         AnnotationValueVisitor<Void, CompilationUnit> {
 
     public void organiseImports(final CompilationUnit compilationUnit) {
-        compilationUnit.getPackageElement().accept(this, compilationUnit);
+        final var packageDeclaration = compilationUnit.getPackageDeclaration();
+        if (packageDeclaration != null) {
+            packageDeclaration.accept(this, compilationUnit);
+        }
         compilationUnit.getClassDeclarations().forEach(classDeclaration -> classDeclaration.accept(this, compilationUnit));
+    }
+
+    @Override
+    public Void visitPackageDeclaration(final PackageDeclaration packageDeclaration,
+                                        final CompilationUnit param) {
+        return null;
     }
 
     @Override
@@ -74,7 +86,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
 
     @Override
     public Void visitExecutable(final ExecutableElement methodElement,
-                                         final CompilationUnit cu) {
+                                final CompilationUnit cu) {
         processAnnotations(methodElement.getAnnotationMirrors(), cu);
         methodElement.getParameters().forEach(it -> it.accept(this, cu));
 
@@ -109,18 +121,31 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     public Void visitFieldAccessExpression(final FieldAccessExpression fieldAccessExpression,
                                            final CompilationUnit cu) {
         fieldAccessExpression.getScope().accept(this, cu);
-        fieldAccessExpression.getField().accept(this, cu);
         return null;
     }
 
     @Override
-    public Void visitNameExpression(final NameExpression nameExpression,
-                                    final CompilationUnit cu) {
-        final var symbol = nameExpression.getSymbol();
+    public Void visitIdentifierExpression(final IdentifierExpression identifierExpression,
+                                          final CompilationUnit cu) {
+        final var symbol = identifierExpression.getSymbol();
 
         if (symbol instanceof ClassSymbol classSymbol) {
             importClass(classSymbol.getQualifiedName(), cu);
         }
+
+        return null;
+    }
+
+    @Override
+    public Void visitClassOrInterfaceTypeExpression(final ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression,
+                                                    final CompilationUnit cu) {
+        final var type = classOrInterfaceTypeExpression.getType();
+
+        if (type instanceof ClassType classType) {
+            importClass(classType.asElement().getQualifiedName(), cu);
+        }
+
+        classOrInterfaceTypeExpression.getTypeArguments().forEach(typeArg -> typeArg.accept(this, cu));
 
         return null;
     }
@@ -134,21 +159,47 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration,
+    public Void visitVariableDeclaration(final JVariableDeclaration variableDeclaration,
                                          final CompilationUnit cu) {
+        return doVisitVariableDeclaration(variableDeclaration, cu);
+    }
+
+    @Override
+    public Void visitVariableDeclaration(final KVariableDeclaration variableDeclaration,
+                                         final CompilationUnit cu) {
+        return doVisitVariableDeclaration(variableDeclaration, cu);
+    }
+
+    private Void doVisitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
+                                            final CompilationUnit cu) {
+        variableDeclaration.getAnnotations().forEach(annotation -> annotation.accept(this, cu));
         variableDeclaration.getInitExpression().ifPresent(it -> it.accept(this, cu));
 
-        if (variableDeclaration.getType() != null) {
-            variableDeclaration.getType().accept(this, cu);
+        if (variableDeclaration.getVarType() != null) {
+            variableDeclaration.getVarType().accept(this, cu);
         }
         return null;
     }
 
     @Override
-    public Void visitClassDeclaration(final ClassDeclaration classDeclaration, final CompilationUnit compilationUnit) {
+    public Void visitClassDeclaration(final JClassDeclaration classDeclaration,
+                                      final CompilationUnit compilationUnit) {
+        return doVisitClassDeclaration(classDeclaration, compilationUnit);
+    }
+
+    @Override
+    public Void visitClassDeclaration(final KClassDeclaration classDeclaration,
+                                      final CompilationUnit compilationUnit) {
+        return doVisitClassDeclaration(classDeclaration, compilationUnit);
+    }
+
+    private Void doVisitClassDeclaration(final ClassDeclaration<?> classDeclaration,
+                                         final CompilationUnit compilationUnit) {
+        classDeclaration.getAnnotations().forEach(annotationExpression -> annotationExpression.accept(this, compilationUnit));
         classDeclaration.getEnclosed().forEach(enclosed -> enclosed.accept(this, compilationUnit));
         return null;
     }
+
 
     @Override
     public Void visitLiteralExpression(final LiteralExpression literalExpression,
@@ -197,7 +248,8 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     @Override
     public Void visitNewClassExpression(final NewClassExpression newClassExpression,
                                         final CompilationUnit cu) {
-        newClassExpression.getClassType().accept(this, cu);
+        newClassExpression.getClazz().accept(this, cu);
+        newClassExpression.getArguments().forEach(arg -> arg.accept(this, cu));
         return null;
     }
 
@@ -289,7 +341,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     private void processAnnotation(final AnnotationMirror annotation,
-                                               final CompilationUnit compilationUnit) {
+                                   final CompilationUnit compilationUnit) {
         final Name className = Elements.getQualifiedName(annotation.getAnnotationType().asElement());
         importClass(className, compilationUnit);
         annotation.getElementValues().values().forEach(value -> value.accept(this, compilationUnit));
@@ -339,53 +391,62 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     private boolean matchesPackage(final String classname,
                                    final CompilationUnit compilationUnit) {
         final var qualifiedName = QualifiedName.from(classname);
-        final var packageElement = compilationUnit.getPackageElement();
-        final var packageName = packageElement.getQualifiedName();
-        return qualifiedName.packageName().equals(packageName);
+        final var packageDeclaration = compilationUnit.getPackageDeclaration();
+        final var packageName = packageDeclaration != null ? packageDeclaration.getName().getName() : "";
+        return qualifiedName.packageName().contentEquals(packageName);
     }
 
     @Override
-    public Void visit(final AnnotationValue av, final CompilationUnit compilationUnit) {
+    public Void visit(final AnnotationValue av,
+                      final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitBoolean(final boolean value, final CompilationUnit param) {
+    public Void visitBoolean(final boolean value,
+                             final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitByte(final byte value, final CompilationUnit compilationUnit) {
+    public Void visitByte(final byte value,
+                          final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitChar(final char value, final CompilationUnit param) {
+    public Void visitChar(final char value,
+                          final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitShort(final short value, final CompilationUnit param) {
+    public Void visitShort(final short value,
+                           final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitInt(final int value, final CompilationUnit param) {
+    public Void visitInt(final int value,
+                         final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitLong(final long value, final CompilationUnit param) {
+    public Void visitLong(final long value,
+                          final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitFloat(final float value, final CompilationUnit param) {
+    public Void visitFloat(final float value,
+                           final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitDouble(final double value, final CompilationUnit param) {
+    public Void visitDouble(final double value,
+                            final CompilationUnit param) {
         return null;
     }
 
@@ -395,115 +456,149 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitArray(final List<? extends AnnotationValue> array, final CompilationUnit param) {
+    public Void visitArray(final List<? extends AnnotationValue> array,
+                           final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitUnknown(final AnnotationValue av, final CompilationUnit compilationUnit) {
+    public Void visitUnknown(final AnnotationValue av,
+                             final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitEnumConstant(final VariableElement variableElement, final CompilationUnit compilationUnit) {
+    public Void visitEnumConstant(final VariableElement variableElement,
+                                  final CompilationUnit compilationUnit) {
         importClass(Elements.getQualifiedName(variableElement.getEnclosingElement()), compilationUnit);
         return null;
     }
 
     @Override
-    public Void visitType(final TypeMirror classType, final CompilationUnit param) {
+    public Void visitType(final TypeMirror classType,
+                          final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visit(final Element e, final CompilationUnit compilationUnit) {
+    public Void visit(final Element e,
+                      final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitTypeParameter(final TypeParameterElement e, final CompilationUnit compilationUnit) {
+    public Void visitTypeParameter(final TypeParameterElement e,
+                                   final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visit(final TypeMirror t, final CompilationUnit compilationUnit) {
+    public Void visit(final TypeMirror t,
+                      final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitNull(final NullType t, final CompilationUnit compilationUnit) {
+    public Void visitNull(final NullType t,
+                          final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitError(final ErrorType t, final CompilationUnit compilationUnit) {
+    public Void visitError(final ErrorType t,
+                           final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitTypeVariable(final TypeVariable t, final CompilationUnit compilationUnit) {
+    public Void visitTypeVariable(final TypeVariable t,
+                                  final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitNoType(final NoType t, final CompilationUnit compilationUnit) {
+    public Void visitNoType(final NoType t,
+                            final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitIntersection(final IntersectionType t, final CompilationUnit compilationUnit) {
+    public Void visitIntersection(final IntersectionType t,
+                                  final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitUnion(final UnionType t, final CompilationUnit compilationUnit) {
+    public Void visitUnion(final UnionType t,
+                           final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitVarType(final VarTypeImpl varType, final CompilationUnit compilationUnit) {
+    public Void visitVarType(final VarType varType,
+                             final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitAnnotatedType(final AnnotatedTypeExpression annotatedTypeExpression, final CompilationUnit compilationUnit) {
+    public Void visitAnnotatedType(final AnnotatedTypeExpression annotatedTypeExpression,
+                                   final CompilationUnit compilationUnit) {
         return null;
     }
 
     @Override
-    public Void visitAnnotationExpression(final AnnotationExpression annotationExpression, final CompilationUnit compilationUnit) {
-        final var className = ((NameExpression) annotationExpression.getAnnotationType().getClazz()).getName();
+    public Void visitAnnotationExpression(final AnnotationExpression annotationExpression,
+                                          final CompilationUnit compilationUnit) {
+        final var className = annotationExpression.getAnnotationType().getName();
         importClass(className, compilationUnit);
         annotationExpression.getArguments().values().forEach(arg -> arg.accept(this, compilationUnit));
         return null;
     }
 
     @Override
-    public Void visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression, final CompilationUnit param) {
+    public Void visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression,
+                                             final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitMethodDeclaration(final MethodDeclaration methodDeclaration, final CompilationUnit compilationUnit) {
+    public Void visitMethodDeclaration(final JMethodDeclaration methodDeclaration,
+                                       final CompilationUnit compilationUnit) {
+        return doVisitMethodDeclaration(methodDeclaration, compilationUnit);
+    }
+
+    @Override
+    public Void visitMethodDeclaration(final KMethodDeclaration methodDeclaration,
+                                       final CompilationUnit compilationUnit) {
+        return doVisitMethodDeclaration(methodDeclaration, compilationUnit);
+    }
+
+    private Void doVisitMethodDeclaration(final MethodDeclaration<?> methodDeclaration,
+                                          final CompilationUnit compilationUnit) {
         methodDeclaration.getTypeParameters().forEach(typeParameter -> typeParameter.accept(this, compilationUnit));
         methodDeclaration.getAnnotations().forEach(annotationExpression -> annotationExpression.accept(this, compilationUnit));
         methodDeclaration.getParameters().forEach(parameter -> parameter.accept(this, compilationUnit));
         methodDeclaration.getReturnType().accept(this, compilationUnit);
-
+        methodDeclaration.getBody().ifPresent(body -> body.accept(this, compilationUnit));
         return null;
     }
 
     @Override
-    public Void visitNoType(final NoTypeExpression noTypeExpression, final CompilationUnit param) {
+    public Void visitNoType(final NoTypeExpression noTypeExpression,
+                            final CompilationUnit param) {
         return null;
     }
 
     @Override
-    public Void visitParameterizedType(final ParameterizedType parameterizedType, final CompilationUnit param) {
-        parameterizedType.getClazz().accept(this, param);
-        parameterizedType.getType().accept(this, param);
-
+    public Void visitWildCardTypeExpression(final WildCardTypeExpression wildCardTypeExpression, final CompilationUnit param) {
+        wildCardTypeExpression.getTypeExpression().accept(this, param);
         return null;
     }
 
+    @Override
+    public Void visitArrayTypeExpresion(final ArrayTypeExpression arrayTypeExpression,
+                                        final CompilationUnit compilationUnit) {
+        arrayTypeExpression.getComponentTypeExpression().accept(this, compilationUnit);
+        return null;
+    }
 }

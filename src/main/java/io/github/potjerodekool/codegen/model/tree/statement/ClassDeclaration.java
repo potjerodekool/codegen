@@ -6,37 +6,32 @@ import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
-import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
-import io.github.potjerodekool.codegen.model.type.TypeKind;
 
 import java.util.*;
 
-public class ClassDeclaration extends AbstractStatement {
+public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends AbstractStatement implements WithMetaData {
 
     private final Name simpleName;
-    private final ElementKind kind;
 
-    private final Set<Modifier> modifiers = new HashSet<>();
     private final List<Tree> enclosed = new ArrayList<>();
     private Tree enclosing;
     private final List<AnnotationExpression> annotations = new ArrayList<>();
 
-    private MethodDeclaration primaryConstructor;
+    private MethodDeclaration<?> primaryConstructor;
 
     private Expression extending;
 
     private final List<Expression> implementing = new ArrayList<>();
 
-    private ClassSymbol classSymbol;
+    private final Map<String, Object> metaData = new HashMap<>();
 
-    public ClassDeclaration(final Name simpleName,
-                            final ElementKind kind,
-                            final Set<Modifier> modifiers,
-                            final List<Tree> definitions) {
-        this.simpleName = simpleName;
-        this.kind = kind;
-        addModifiers(modifiers);
-        addEnclosed(definitions);
+    public ClassDeclaration(final CharSequence simpleName) {
+        this.simpleName = Name.of(simpleName);
+    }
+
+    @Override
+    public Map<String, Object> getMetaData() {
+        return metaData;
     }
 
     public Name getSimpleName() {
@@ -48,7 +43,7 @@ public class ClassDeclaration extends AbstractStatement {
     }
 
     private Name qualifiedNameOf(final Tree tree) {
-        if (tree instanceof ClassDeclaration classDeclaration) {
+        if (tree instanceof ClassDeclaration<?> classDeclaration) {
             final var enclosing = getEnclosing();
 
             if (enclosing == null) {
@@ -64,58 +59,29 @@ public class ClassDeclaration extends AbstractStatement {
         }
     }
 
-    public ElementKind getKind() {
-        return kind;
-    }
+    public abstract ElementKind getKind();
 
-    public void addModifier(final Modifier modifier) {
-        this.modifiers.add(modifier);
-    }
-
-    public void addModifiers(final Modifier... modifiers) {
-        addModifiers(List.of(modifiers));
-    }
-
-    public void addModifiers(final Collection<Modifier> modifiers) {
-        this.modifiers.addAll(modifiers);
-    }
-
-    public Set<Modifier> getModifiers() {
-        return modifiers;
-    }
+    public abstract Set<? extends Modifier> getModifiers();
 
     public List<Tree> getEnclosed() {
         return enclosed;
+    }
+
+    public void removeEnclosed(final Tree tree) {
+        this.enclosed.remove(tree);
     }
 
     public void addEnclosed(final Tree child) {
         this.enclosed.add(child);
     }
 
-    public MethodDeclaration addMethod(final String name,
-                                       final Set<Modifier> modifiers) {
-        return addMethod(new NoTypeExpression(TypeKind.VOID), name, modifiers);
+    private void addEnclosed(final int index,
+                             final Tree child) {
+        this.enclosed.add(index, child);
     }
 
-    public MethodDeclaration addMethod(final Expression returnType,
-                                       final String name,
-                                       final Set<Modifier> modifiers) {
-        final var method = new MethodDeclaration(
-                Name.of(name),
-                ElementKind.METHOD,
-                returnType,
-                List.of(),
-                List.of(),
-                null
-        );
-        method.addModifiers(modifiers);
-        addEnclosed(method);
-        method.setEnclosing(this);
-        return method;
-    }
-
-    public void addEnclosed(final Collection<Tree> childs) {
-        this.enclosed.addAll(childs);
+    public void addEnclosed(final Collection<Tree> enclosed) {
+        this.enclosed.addAll(enclosed);
     }
 
     public Tree getEnclosing() {
@@ -130,11 +96,20 @@ public class ClassDeclaration extends AbstractStatement {
         return annotations;
     }
 
-    public MethodDeclaration getPrimaryConstructor() {
+    public CD annotation(final String className) {
+        return annotation(new AnnotationExpression(className));
+    }
+
+    public CD annotation(final AnnotationExpression annotationExpression) {
+        this.annotations.add(annotationExpression);
+        return (CD) this;
+    }
+
+    public MethodDeclaration<?> getPrimaryConstructor() {
         return primaryConstructor;
     }
 
-    public void setPrimaryConstructor(final MethodDeclaration primaryConstructor) {
+    public void setPrimaryConstructor(final MethodDeclaration<?> primaryConstructor) {
         this.primaryConstructor = primaryConstructor;
     }
 
@@ -142,35 +117,24 @@ public class ClassDeclaration extends AbstractStatement {
         return extending;
     }
 
+    public void setExtending(final Expression extending) {
+        this.extending = extending;
+    }
+
     public List<Expression> getImplementing() {
         return implementing;
     }
 
-    public MethodDeclaration addConstructor(final Set<Modifier> modifiers) {
-        final var constructor = new MethodDeclaration(
-                getSimpleName(),
-                ElementKind.CONSTRUCTOR,
-                new NoTypeExpression(TypeKind.VOID),
-                List.of(),
-                List.of(),
-                null
-        );
-        constructor.addModifiers(modifiers);
-        addEnclosed(constructor);
-        constructor.setEnclosing(this);
-        return constructor;
+    public void addImplement(final Expression expression) {
+        this.implementing.add(expression);
     }
 
-    @Override
-    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
-        return visitor.visitClassDeclaration(this, param);
-    }
+    public abstract ClassSymbol getClassSymbol();
 
-    public ClassSymbol getClassSymbol() {
-        return classSymbol;
-    }
+    public abstract List<? extends MethodDeclaration<?>> constructors();
 
-    public void setClassSymbol(final ClassSymbol classSymbol) {
-        this.classSymbol = classSymbol;
-    }
+    public abstract List<? extends MethodDeclaration<?>> methods();
+
+    public abstract List<? extends VariableDeclaration<?>> fields();
+
 }

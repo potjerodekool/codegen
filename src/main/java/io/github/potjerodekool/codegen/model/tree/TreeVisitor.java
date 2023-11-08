@@ -6,13 +6,8 @@ import io.github.potjerodekool.codegen.model.tree.type.*;
 
 public interface TreeVisitor<R,P> {
     
-    private void throwException() {
-        throw new UnsupportedOperationException("" + getClass().getName());
-    }
-
-    default R visitMethodDeclaration(MethodDeclaration methodDeclaration, P param) {
-        throwException();
-        return null;
+    default void throwException() {
+        throw new UnsupportedOperationException(getClass().getName());
     }
 
     default R visitTypeParameter(TypeParameter typeParameter, P param) {
@@ -34,8 +29,8 @@ public interface TreeVisitor<R,P> {
         return null;
     }
 
-    default R visitNameExpression(NameExpression nameExpression,
-                                  P param) {
+    default R visitIdentifierExpression(IdentifierExpression identifierExpression,
+                                        P param) {
         throwException();
         return null;
     }
@@ -130,16 +125,6 @@ public interface TreeVisitor<R,P> {
         return visitUnknown(errorStatement, param);
     }
 
-    default R visitVariableDeclaration(VariableDeclaration variableDeclaration, P param) {
-        throwException();
-        return null;
-    }
-
-    default R visitClassDeclaration(ClassDeclaration classDeclaration, P param) {
-        throwException();
-        return null;
-    }
-
     default R visitPackageDeclaration(PackageDeclaration packageDeclaration, P param) {
         throwException();
         return null;
@@ -160,17 +145,17 @@ public interface TreeVisitor<R,P> {
         return null;
     }
 
-    default R visitParameterizedType(ParameterizedType parameterizedType, P param) {
-        throwException();
-        return null;
-    }
-
     default R visitNoType(NoTypeExpression noTypeExpression, P param) {
         throwException();
         return null;
     }
 
     default R visitAnnotationExpression(AnnotationExpression annotationExpression, P param) {
+        throwException();
+        return null;
+    }
+
+    default R visitClassOrInterfaceTypeExpression(ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression, P param) {
         throwException();
         return null;
     }

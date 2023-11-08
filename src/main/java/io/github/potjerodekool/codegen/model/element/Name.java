@@ -2,22 +2,29 @@ package io.github.potjerodekool.codegen.model.element;
 
 public interface Name extends CharSequence {
 
-    Name EMPTY = new NameImpl("");
+    Name EMPTY = NameCache.INSTANCE.EMPTY;
 
     static Name of(final CharSequence value) {
-        if (value.isEmpty()) {
-            return Name.EMPTY;
-        } else {
-            return new NameImpl(value);
+        if (value instanceof Name name) {
+            return name;
         }
+
+        var name = NameCache.INSTANCE.findName(value);
+
+        if (name == null) {
+            name = new NameImpl(value.toString());
+            NameCache.INSTANCE.add(name);
+        }
+
+        return name;
     }
 
     static Name of(final Name parentName,
-                          final Name childName) {
-        if (parentName == Name.EMPTY) {
+                   final Name childName) {
+        if (parentName == EMPTY) {
             return childName;
         } else {
-            return of(parentName.toString() + "." + childName.toString());
+            return of(parentName.getValue() + "." + childName.getValue());
         }
     }
 
@@ -30,9 +37,17 @@ public interface Name extends CharSequence {
     }
 
 
+    Name shortName();
+
+    Name packagePart();
+
     boolean equals(Object obj);
 
     int hashCode();
 
     boolean contentEquals(CharSequence cs);
+
+    Name append(CharSequence simpleName);
+
+    CharSequence getValue();
 }

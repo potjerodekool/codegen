@@ -5,8 +5,8 @@ import io.github.potjerodekool.codegen.extension.DefaultValueResolver;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.expression.LiteralExpression;
 import io.github.potjerodekool.codegen.model.tree.expression.MethodCallExpression;
-import io.github.potjerodekool.codegen.model.tree.expression.NameExpression;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
+import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpression;
 import io.github.potjerodekool.codegen.model.type.ArrayType;
 import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
@@ -20,14 +20,14 @@ public class BuildInDefaultValueResolver implements DefaultValueResolver {
             final var qualifiedName = ((ClassSymbol) declaredType.asElement()).getQualifiedName();
             if ("org.openapitools.jackson.nullable.JsonNullable".equals(qualifiedName.toString())) {
                 return new MethodCallExpression(
-                        new NameExpression("org.openapitools.jackson.nullable.JsonNullable"),
+                        new ClassOrInterfaceTypeExpression("org.openapitools.jackson.nullable.JsonNullable"),
                         "undefined"
                 );
             } else if (!typeMirror.isNullable()) {
                 final var className = ((ClassSymbol) declaredType.asElement()).getQualifiedName().toString();
 
                 return switch (className) {
-                    case KotlinClasses.KOTLIN_STRING -> LiteralExpression.createStringLiteralExpression("");
+                    case KotlinClasses.KOTLIN_STRING -> LiteralExpression.createStringLiteralExpression();
                     case KotlinClasses.KOTLIN_INT -> LiteralExpression.createIntLiteralExpression();
                     case KotlinClasses.KOTLIN_BOOLEAN -> LiteralExpression.createBooleanLiteralExpression();
                     case KotlinClasses.KOTLIN_BYTE -> LiteralExpression.createByteLiteralExpression();

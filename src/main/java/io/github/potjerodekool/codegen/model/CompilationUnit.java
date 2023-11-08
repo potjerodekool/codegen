@@ -3,7 +3,6 @@ package io.github.potjerodekool.codegen.model;
 import io.github.potjerodekool.codegen.Language;
 import io.github.potjerodekool.codegen.io.FileObject;
 import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
 import io.github.potjerodekool.codegen.model.tree.PackageDeclaration;
 import io.github.potjerodekool.codegen.model.tree.Tree;
 import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
@@ -16,11 +15,7 @@ public class CompilationUnit implements AstNode {
 
     private FileObject fileObject;
 
-    private PackageSymbol packageElement = PackageSymbol.DEFAULT_PACKAGE;
-
     private final List<Name> imports = new ArrayList<>();
-
-    private final List<Element> elements = new ArrayList<>();
 
     private final List<Tree> definitions = new ArrayList<>();
 
@@ -42,13 +37,6 @@ public class CompilationUnit implements AstNode {
         return language;
     }
 
-    public PackageSymbol getPackageElement() {
-        return packageElement;
-    }
-
-    public void setPackageElement(final PackageSymbol packageElement) {
-        this.packageElement = packageElement;
-    }
 
     public List<Name> getImports() {
         return Collections.unmodifiableList(imports);
@@ -58,37 +46,29 @@ public class CompilationUnit implements AstNode {
         this.imports.add(name);
     }
 
-    public List<Element> getElements() {
-        return Collections.unmodifiableList(elements);
-    }
-
-    public void addElement(final Element element) {
-        this.elements.add(element);
-    }
-
-    public void removeElement(final Element element) {
-        this.elements.remove(element);
-    }
-
     public List<Tree> getDefinitions() {
         return definitions;
     }
 
     public PackageDeclaration getPackageDeclaration() {
-        final var definition = definitions.size() > 0 ? definitions.get(0) : null;
+        final var definition = !definitions.isEmpty() ? definitions.get(0) : null;
         return definition instanceof PackageDeclaration packageDeclaration
                 ? packageDeclaration
                 : null;
     }
 
-    public List<ClassDeclaration> getClassDeclarations() {
+    public <CD extends ClassDeclaration<CD>> List<ClassDeclaration<CD>> getClassDeclarations() {
         return definitions.stream()
                 .filter(it -> it instanceof ClassDeclaration)
-                .map(it -> (ClassDeclaration) it)
+                .map(it -> (ClassDeclaration<CD>) it)
                 .toList();
     }
 
-    public void add(Tree definition) {
+    public void remove(final Tree definition) {
+        this.definitions.remove(definition);
+    }
+
+    public void add(final Tree definition) {
         this.definitions.add(definition);
     }
 

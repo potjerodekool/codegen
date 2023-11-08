@@ -21,9 +21,20 @@ public class ClassType extends AbstractType implements DeclaredType {
 
     public ClassType(final ClassSymbol typeElement,
                      final List<? extends AnnotationMirror> annotations,
-                     final List<? extends TypeMirror> typeArguments,
+                     final List<TypeMirror> typeArguments,
                      final boolean isNullable) {
         super(annotations, typeArguments);
+        this.typeElement = typeElement;
+        this.isNullable = isNullable;
+    }
+
+    public ClassType(final TypeMirror enclosingType,
+                     final List<? extends AnnotationMirror> annotations,
+                     final List<TypeMirror> typeArguments,
+                     final boolean isNullable,
+                     final ClassSymbol typeElement) {
+        super(annotations, typeArguments);
+        this.enclosingType = enclosingType;
         this.typeElement = typeElement;
         this.isNullable = isNullable;
     }
@@ -91,10 +102,16 @@ public class ClassType extends AbstractType implements DeclaredType {
             return new ClassType(
                     this.asElement(),
                     this.getAnnotationMirrors(),
-                    getTypeArguments(),
+                    copy(getTypeArguments()),
                     true
             );
         }
+    }
+
+    private List<TypeMirror> copy(final List<? extends TypeMirror> list) {
+        return list.stream()
+                .map(it -> (TypeMirror) it)
+                .toList();
     }
 
     @Override
@@ -102,7 +119,7 @@ public class ClassType extends AbstractType implements DeclaredType {
         return !isNullable ? this : new ClassType(
                 this.asElement(),
                 getAnnotationMirrors(),
-                getTypeArguments(),
+                copy(getTypeArguments()),
                 false
         );
     }
@@ -112,7 +129,7 @@ public class ClassType extends AbstractType implements DeclaredType {
         final var stringBuilder = new StringBuilder();
         stringBuilder.append(this.asElement().getQualifiedName().toString());
 
-        if (getTypeArguments().size() > 0) {
+        if (!getTypeArguments().isEmpty()) {
             stringBuilder.append("<");
 
             stringBuilder.append(getTypeArguments().stream()
@@ -123,5 +140,23 @@ public class ClassType extends AbstractType implements DeclaredType {
         }
 
         return stringBuilder.toString();
+    }
+
+    @Override
+    public void addTypeArgument(final TypeMirror typeArgument) {
+        if (typeElement != null) {
+            if (typeElement.getQualifiedName().contentEquals("java.util.Map")) {
+                if (getTypeArguments().size() == 2) {
+                    throw new IllegalStateException();
+                }
+            }
+        }
+
+        super.addTypeArgument(typeArgument);
+    }
+
+    @Override
+    public ClassTypeTypeMirrorBuilder builder() {
+        return new ClassTypeTypeMirrorBuilder(this);
     }
 }

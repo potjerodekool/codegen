@@ -8,8 +8,40 @@ public class PrimitiveTypeExpression extends AbstractExpression implements TypeE
 
     private final TypeKind kind;
 
-    public PrimitiveTypeExpression(final TypeKind kind) {
+    private PrimitiveTypeExpression(final TypeKind kind) {
         this.kind = kind;
+    }
+
+    public static PrimitiveTypeExpression booleanTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.BOOLEAN);
+    }
+
+    public static PrimitiveTypeExpression byteTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.BYTE);
+    }
+
+    public static PrimitiveTypeExpression shortTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.SHORT);
+    }
+
+    public static PrimitiveTypeExpression intTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.INT);
+    }
+
+    public static PrimitiveTypeExpression longTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.LONG);
+    }
+
+    public static PrimitiveTypeExpression charTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.CHAR);
+    }
+
+    public static PrimitiveTypeExpression floatTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.FLOAT);
+    }
+
+    public static PrimitiveTypeExpression doubleTypeExpression() {
+        return new PrimitiveTypeExpression(TypeKind.DOUBLE);
     }
 
     public TypeKind getKind() {

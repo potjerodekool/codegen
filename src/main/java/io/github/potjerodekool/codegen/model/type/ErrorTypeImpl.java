@@ -18,7 +18,7 @@ public class ErrorTypeImpl extends ClassType implements ErrorType {
 
     public ErrorTypeImpl(final ClassSymbol typeElement,
                          final List<? extends AnnotationMirror> annotations,
-                         final List<? extends TypeMirror> typeArguments,
+                         final List<TypeMirror> typeArguments,
                          final boolean isNullable) {
         super(typeElement, annotations, typeArguments, isNullable);
     }

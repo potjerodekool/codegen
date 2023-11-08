@@ -4,6 +4,4 @@ import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 
 public interface TypeElementLoader {
     ClassSymbol loadTypeElement(String name);
-
-    ClassSymbol doLoadTypeElement(final String name);
 }

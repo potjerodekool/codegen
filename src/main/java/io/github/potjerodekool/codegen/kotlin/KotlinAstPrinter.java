@@ -3,16 +3,20 @@ package io.github.potjerodekool.codegen.kotlin;
 import io.github.potjerodekool.codegen.AbstractAstPrinter;
 import io.github.potjerodekool.codegen.CodeContext;
 import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
+import io.github.potjerodekool.codegen.model.tree.KTreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.io.Printer;
 import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.tree.type.PrimitiveTypeExpression;
+import io.github.potjerodekool.codegen.model.tree.kotlin.KAnnotationExpression;
+import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.tree.statement.IfStatement;
-import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.TypeParameter;
-import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.type.java.JavaArrayType;
 import io.github.potjerodekool.codegen.model.type.kotlin.UnitType;
 import io.github.potjerodekool.codegen.model.util.Counter;
@@ -24,108 +28,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class KotlinAstPrinter extends AbstractAstPrinter {
+import static io.github.potjerodekool.codegen.CollectionUtils.forEachWithIndexed;
+
+public class KotlinAstPrinter extends AbstractAstPrinter
+        implements KTreeVisitor<Void, CodeContext> {
 
     public KotlinAstPrinter(final Printer printer,
                             final Types types) {
         super(printer, types);
     }
 
-    //Elements
-    @Override
-    public Void visitType(final TypeElement typeElement,
-                          final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-    void visitPrimaryConstructor(final MethodDeclaration method,
+    void visitPrimaryConstructor(final MethodDeclaration<?> method,
                                  final CodeContext context) {
-        if (method.getAnnotations().size() > 0) {
+        if (!method.getAnnotations().isEmpty()) {
             printer.print(" ");
-            throw new UnsupportedOperationException();
-            /*TODO
             printAnnotations(
-                    method.getAnnotationMirrors(),
+                    method.getAnnotations(),
+                    false,
                     false,
                     context
             );
-
             printer.print(" constructor");
-             */
         }
         visitMethodParameters(method.getParameters(), context);
     }
-
-    @Override
-    public Void visitExecutable(final ExecutableElement methodElement,
-                                final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-    private void visitMethod(final ExecutableElement methodElement,
-                             final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public Void visitVariable(final VariableElement variableElement,
-                              final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-    /*
-    @Override
-    public Void visitVariable(final VariableElement variableElement,
-                              final CodeContext context) {
-        final var isField = variableElement.getKind() == ElementKind.FIELD;
-        final var annotations = variableElement.getAnnotationMirrors();
-        final var modifiers = variableElement.getModifiers();
-
-        final var hasAnnotations = annotations.size() > 0;
-        final var hasModifiers = modifiers.size() > 0;
-
-        if (hasAnnotations
-                && isField) {
-            printer.printIndent();
-        }
-
-        printAnnotations(variableElement.getAnnotationMirrors(), isField, context);
-
-        if (hasModifiers
-                && isField) {
-            printer.printIndent();
-        }
-
-        if (hasModifiers
-                && hasAnnotations
-                && variableElement.getKind() == ElementKind.PARAMETER) {
-            printer.print(" ");
-        }
-
-        printModifiers(modifiers);
-
-        if (hasAnnotations
-                || hasModifiers) {
-            printer.print(" ");
-        }
-
-        printer.print(variableElement.getSimpleName());
-        printer.print(" : ");
-
-        final var variableType = variableElement.asType();
-
-        variableType.accept(this, context);
-
-        final var initExpression = ((VariableSymbol)variableElement).getInitExpression();
-
-        if (initExpression != null) {
-            printer.print(" = ");
-            initExpression.accept(this, context);
-        }
-        return null;
-    }
-    */
 
     //Expressions
     @Override
@@ -154,29 +80,34 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration,
+    public Void visitVariableDeclaration(final KVariableDeclaration variableDeclaration,
                                          final CodeContext context) {
-        if (variableDeclaration.getModifiers().contains(Modifier.FINAL)) {
-            printer.print("val");
-        } else {
-            printer.print("var");
-        }
-
+        final var isField = variableDeclaration.getKind() == ElementKind.FIELD;
         final var modifiers = variableDeclaration.getModifiers();
 
-        if (modifiers.size() > 0) {
+        if (isField) {
+            printer.printIndent();
+        }
+
+        if (!modifiers.isEmpty()) {
+            printModifiers(modifiers);
             printer.print(" ");
         }
 
-        printModifiers(modifiers);
-        printer.print(" ");
         printer.print(variableDeclaration.getName());
+
+        final var varType = variableDeclaration.getVarType();
+
+        if (varType != null
+                && !(varType instanceof VarTypeExpression)) {
+            printer.print(" : ");
+            varType.accept(this,context);
+        }
 
         variableDeclaration.getInitExpression().ifPresent(initExpression -> {
             printer.print(" = ");
             initExpression.accept(this, context);
         });
-        printer.printLn();
         return null;
     }
 
@@ -184,16 +115,17 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     @Override
     public Void visitNewClassExpression(final NewClassExpression newClassExpression,
                                         final CodeContext context) {
-        newClassExpression.getClassType().accept(this, context);
-        printer.print("()");
+        newClassExpression.getClazz().accept(this, context);
+        printer.print("(");
+        printExpressionList(newClassExpression.getArguments(), ", ", context);
+        printer.print(")");
         return null;
     }
 
-    @Override
-    public Void visitArrayInitializerExpression(final ArrayInitializerExpression arrayInitializerExpression,
-                                                final CodeContext context) {
-        final var literalTypeOptional = detectTypeOfValues(arrayInitializerExpression);
+    private String resolveArrayOfMethodName(final ArrayInitializerExpression arrayInitializerExpression) {
         final String arrayOfMethodName;
+
+        final var literalTypeOptional = detectTypeOfValues(arrayInitializerExpression);
 
         if (literalTypeOptional.isPresent()) {
             final var literalType = literalTypeOptional.get();
@@ -212,22 +144,30 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
             arrayOfMethodName = "arrayOf";
         }
 
+        return arrayOfMethodName;
+    }
+
+    @Override
+    public Void visitArrayInitializerExpression(final ArrayInitializerExpression arrayInitializerExpression,
+                                                final CodeContext context) {
+        final String arrayOfMethodName = resolveArrayOfMethodName(arrayInitializerExpression);
+
         printer.print(arrayOfMethodName);
         printer.print("(");
 
         final var values = arrayInitializerExpression.getValues();
 
-        final var lastIndex = values.size() -1 ;
+        final var lastIndex = values.size() -1;
 
         final var childContext = context.child(arrayInitializerExpression);
 
-        for (int i = 0; i < values.size(); i++) {
-            final var value = values.get(i);
-            value.accept(this, childContext);
-            if (i < lastIndex) {
+        forEachWithIndexed(values, (element, index) -> {
+            element.accept(this, childContext);
+            if (index < lastIndex) {
                 printer.print(", ");
             }
-        }
+        });
+
         printer.print(")");
         return null;
     }
@@ -235,7 +175,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     private Optional<LiteralType> detectTypeOfValues(final ArrayInitializerExpression arrayInitializerExpression) {
         final var values = arrayInitializerExpression.getValues();
 
-        if (values.size() > 0) {
+        if (!values.isEmpty()) {
             final var firstValue = values.get(0);
             if (firstValue instanceof LiteralExpression le) {
                 return Optional.of(le.getLiteralType());
@@ -257,6 +197,54 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
+    public Void visitAnnotationExpression(final AnnotationExpression annotationExpression,
+                                          final CodeContext context) {
+        final var elementValues = annotationExpression.getArguments();
+        final var annotationType = (DeclaredType) annotationExpression.getAnnotationType().getType();
+
+        if (!isPartOfAnnotationExpressionOrArrayInitializerExpression(context)) {
+            printer.print("@");
+        }
+
+        final var className = resolveAnnotationClassName(annotationType.asElement(), context);
+
+        if (annotationExpression instanceof KAnnotationExpression kAnnotationExpression) {
+            final var target = kAnnotationExpression.getTarget();
+
+            if (target != null) {
+                if (target == KAnnotationExpression.Target.FIELD) {
+                    printer.print("field:");
+                }
+            }
+        }
+
+        printer.print(className);
+
+        if (!elementValues.isEmpty()) {
+            printer.print("(");
+
+            final var lastIndex = elementValues.size() - 1;
+            final var counter = new Counter();
+
+            final var childContext = context.child(annotationExpression);
+
+            elementValues.forEach((name,value) -> {
+                printer.print(name);
+                printer.print(" = ");
+                value.accept(this, childContext);
+
+                if (counter.getValue() < lastIndex) {
+                    printer.print(", ");
+                }
+                counter.increment();
+            });
+            printer.print(")");
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitAnnotation(final AnnotationMirror annotationExpression,
                                 final CodeContext context) {
         final var elementValues = annotationExpression.getElementValues();
@@ -271,7 +259,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
 
         printer.print(className);
 
-        if (elementValues.size() > 0) {
+        if (!elementValues.isEmpty()) {
             printer.print("(");
 
             final var lastIndex = elementValues.size() - 1;
@@ -415,6 +403,22 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
+    public Void visitWildCardTypeExpression(final WildCardTypeExpression wildCardTypeExpression,
+                                            final CodeContext context) {
+        final var bound = wildCardTypeExpression.getTypeExpression();
+
+        if (wildCardTypeExpression.getBoundKind() == BoundKind.EXTENDS) {
+            printer.print("out ");
+            bound.accept(this, context);
+        } else if (wildCardTypeExpression.getBoundKind() == BoundKind.SUPER) {
+            bound.accept(this, context);
+        } else {
+            throw new UnsupportedOperationException("wildcard without any bound is not supported");
+        }
+        return null;
+    }
+
+    @Override
     public Void visitWildcard(final WildcardType wildcardType,
                               final CodeContext context) {
         final var extendsBound = wildcardType.getExtendsBound();
@@ -455,7 +459,8 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     protected Name resolveClassName(final Name className,
                                     final CodeContext context) {
         final var qualifiedName = QualifiedName.from(className);
-        if ("kotlin".equals(qualifiedName.packageName().toString())) {
+
+        if (qualifiedName.toString().startsWith("kotlin.")) {
             return qualifiedName.simpleName();
         }
         return super.resolveClassName(className, context);
@@ -473,13 +478,13 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     protected Name resolveAnnotationClassName(final AnnotationExpression annotation, final CodeContext context) {
         final var className = super.resolveAnnotationClassName(annotation, context);
 
-        /*TODO
-        final var annotationTarget = ((Attribute.Compound)annotation).getTarget();
+        if (annotation instanceof KAnnotationExpression kAnnotationExpression) {
+            final var target = kAnnotationExpression.getTarget();
 
-        if (annotationTarget != null) {
-            return Name.of(annotationTarget.getPrefix() + ":" + className);
+            if (target == KAnnotationExpression.Target.FIELD) {
+                return Name.of("field:" + className);
+            }
         }
-        */
 
         return className;
     }
@@ -507,26 +512,6 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitUnknown(final AnnotationValue av, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visit(final Element e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visitTypeParameter(final TypeParameterElement e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visitUnknown(final Element e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Void visit(final TypeMirror t, final CodeContext codeContext) {
         throw new UnsupportedOperationException();
     }
@@ -547,11 +532,6 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitUnknown(final TypeMirror t, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Void visitUnion(final UnionType t, final CodeContext codeContext) {
         throw new UnsupportedOperationException();
     }
@@ -567,12 +547,12 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
 
         final var lastIndex = array.size() - 1;
 
-        for (int valueIndex = 0; valueIndex < array.size(); valueIndex++) {
-            array.get(valueIndex).accept(this, param);
-            if (valueIndex < lastIndex) {
+        forEachWithIndexed(array, (element, index) -> {
+            element.accept(this, param);
+            if (index < lastIndex) {
                 printer.print(", ");
             }
-        }
+        });
 
         printer.print("]");
 
@@ -580,20 +560,18 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitVarType(final VarTypeImpl varType, final CodeContext codeContext) {
+    public Void visitVarType(final VarType varType, final CodeContext codeContext) {
         throw new UnsupportedOperationException();
     }
     @Override
-    public Void visitClassDeclaration(final ClassDeclaration classDeclaration, final CodeContext context) {
+    public Void visitClassDeclaration(final KClassDeclaration classDeclaration, final CodeContext context) {
+        final var classContext = context.child(classDeclaration);
+
         printer.printIndent();
 
         final var annotations = classDeclaration.getAnnotations();
 
-        if (annotations.size() > 0) {
-            throw new UnsupportedOperationException();
-        }
-
-        printAnnotations(annotations, true, context);
+        printAnnotations(annotations, true, false, classContext);
 
         printModifiers(classDeclaration.getModifiers());
 
@@ -601,9 +579,14 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
             printer.print(" ");
         }
 
-        switch (classDeclaration.getKind()) {
-            case CLASS -> printer.print("class ");
-            case INTERFACE -> printer.print("interface ");
+        final var elementKind = classDeclaration.getKind();
+
+        if (elementKind == ElementKind.CLASS) {
+            printer.print("class ");
+        } else if (elementKind == ElementKind.INTERFACE) {
+            printer.print("interface ");
+        } else if (elementKind == ElementKind.OBJECT) {
+            printer.print("object ");
         }
 
         printer.print(classDeclaration.getSimpleName());
@@ -611,7 +594,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
         final var primaryConstructor = classDeclaration.getPrimaryConstructor();
 
         if (primaryConstructor != null) {
-            visitPrimaryConstructor(primaryConstructor, context);
+            visitPrimaryConstructor(primaryConstructor, classContext);
         }
 
         final var extendsTypes = new ArrayList<Expression>();
@@ -624,36 +607,36 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
 
         extendsTypes.addAll(classDeclaration.getImplementing());
 
-        if (extendsTypes.size() > 0) {
+        if (!extendsTypes.isEmpty()) {
             printer.print(" : ");
 
-            for (int extendsIndex = 0; extendsIndex < extendsTypes.size(); extendsIndex++) {
-                if (extendsIndex > 0) {
+            final var lastIndex = extendsTypes.size() - 1;
+
+            forEachWithIndexed(extendsTypes, (extendsType, index) -> {
+                extendsType.accept(this, classContext);
+                if (index < lastIndex) {
                     printer.print(", ");
                 }
-                final var extendsType = extendsTypes.get(extendsIndex);
-                extendsType.accept(this, context);
-            }
+            });
         }
 
         final var enclosedElements = classDeclaration.getEnclosed();
 
-        if (enclosedElements.size() > 0) {
+        if (!enclosedElements.isEmpty()) {
             printer.printLn(" {");
             printer.indent();
 
             printer.printLn();
             final var lastIndex = enclosedElements.size() - 1;
 
-            for (int i = 0; i < enclosedElements.size(); i++) {
-                final var enclosedElement = enclosedElements.get(i);
+            forEachWithIndexed(enclosedElements, (enclosedElement, index) -> {
+                enclosedElement.accept(this, classContext);
 
-                enclosedElement.accept(this, context);
-
-                if (i < lastIndex) {
+                if (index < lastIndex) {
+                    printer.printLn();
                     printer.printLn();
                 }
-            }
+            });
 
             printer.deIndent();
 
@@ -665,7 +648,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitMethodDeclaration(final MethodDeclaration methodDeclaration,
+    public Void visitMethodDeclaration(final KMethodDeclaration methodDeclaration,
                                        final CodeContext context) {
         if (methodDeclaration.getKind() == ElementKind.CONSTRUCTOR) {
             return visitSecondaryConstructor(methodDeclaration, context);
@@ -674,12 +657,12 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
         }
     }
 
-    private Void visitSecondaryConstructor(final MethodDeclaration methodDeclaration,
+    private Void visitSecondaryConstructor(final MethodDeclaration<?> methodDeclaration,
                                            final CodeContext context) {
         final var modifiers = methodDeclaration.getModifiers();
         printModifiers(modifiers);
 
-        if (modifiers.size() > 0) {
+        if (!modifiers.isEmpty()) {
             printer.print(" constructor");
             visitMethodParameters(methodDeclaration.getParameters(), context);
             printer.print(": ");
@@ -693,23 +676,23 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
         return null;
     }
 
-    private Void visitMethod(final MethodDeclaration methodDeclaration,
+    private Void visitMethod(final KMethodDeclaration methodDeclaration,
                              final CodeContext context) {
+        printer.printIndent();
+
         final var annotations = methodDeclaration.getAnnotations();
-        if (annotations.size() > 0) {
-            //printAnnotations(annotations, true, context);
-            //printer.print(" ");
-            throw new UnsupportedOperationException();
+        if (!annotations.isEmpty()) {
+            printAnnotations(annotations, true, true, context);
+            printer.print(" ");
         }
 
         final var modifiers = methodDeclaration.getModifiers();
         printModifiers(modifiers);
 
-        if (modifiers.size() > 0) {
+        if (!modifiers.isEmpty()) {
             printer.print(" ");
         }
 
-        printer.printIndent();
         printer.print("fun ");
 
         printer.print(methodDeclaration.getSimpleName());
@@ -725,7 +708,13 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
                 printer.print(" ");
             }
         }
+
         methodDeclaration.getBody().ifPresent(body -> body.accept(this, context));
+
+        if (methodDeclaration.getBody().isEmpty()) {
+            printer.printLn();
+        }
+
         return null;
     }
 
@@ -736,6 +725,46 @@ public class KotlinAstPrinter extends AbstractAstPrinter {
 
     @Override
     public Void visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression, final CodeContext param) {
-        throw new UnsupportedOperationException();
+        return primitiveTypeExpression.getType().accept(this, param);
+    }
+
+    @Override
+    public Void visitClassOrInterfaceTypeExpression(final ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression,
+                                                    final CodeContext context) {
+        final var type = classOrInterfaceTypeExpression.getType();
+
+        boolean printTypArgs = true;
+
+        if (type instanceof ClassType classType) {
+            classType.accept(this, context);
+            printTypArgs = false;
+        } else {
+            printer.print(classOrInterfaceTypeExpression.getName());
+        }
+
+        if (printTypArgs) {
+            final var arguments = classOrInterfaceTypeExpression.getTypeArguments();
+
+            if (!arguments.isEmpty()) {
+                printer.print("<");
+                final var lastIndex = arguments.size() -1;
+
+                forEachWithIndexed(arguments, (arg, index) -> {
+                    arg.accept(this, context);
+
+                    if (index < lastIndex) {
+                        printer.print(",");
+                    }
+                });
+
+                printer.print(">");
+            }
+
+            if (classOrInterfaceTypeExpression.isNullable()) {
+                printer.print("?");
+            }
+        }
+
+        return null;
     }
 }

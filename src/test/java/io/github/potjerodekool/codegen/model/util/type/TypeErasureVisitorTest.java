@@ -1,7 +1,7 @@
 package io.github.potjerodekool.codegen.model.util.type;
 
 import io.github.potjerodekool.codegen.Environment;
-import io.github.potjerodekool.codegen.loader.asm.ClassPath;
+import io.github.potjerodekool.codegen.loader.java.ClassPath;
 import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.util.Elements;
 import org.junit.jupiter.api.Test;

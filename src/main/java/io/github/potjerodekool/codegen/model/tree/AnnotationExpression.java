@@ -2,43 +2,58 @@ package io.github.potjerodekool.codegen.model.tree;
 
 import io.github.potjerodekool.codegen.model.tree.expression.AbstractExpression;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
-import io.github.potjerodekool.codegen.model.tree.expression.NameExpression;
-import io.github.potjerodekool.codegen.model.tree.type.ParameterizedType;
+import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpression;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class AnnotationExpression extends AbstractExpression {
 
-    private final ParameterizedType annotationType;
+    private final ClassOrInterfaceTypeExpression annotationType;
 
     private final Map<String, Expression> arguments = new HashMap<>();
 
-    public AnnotationExpression(final String annotationType) {
-        this(new ParameterizedType(new NameExpression(annotationType)));
+    public AnnotationExpression(final String annotationType,
+                                final Expression value) {
+        this(new ClassOrInterfaceTypeExpression(annotationType), Map.of("value", value));
     }
 
-    public AnnotationExpression(final ParameterizedType annotationType) {
+    public AnnotationExpression(final String annotationType) {
+        this(new ClassOrInterfaceTypeExpression(annotationType));
+    }
+
+    public AnnotationExpression(final ClassOrInterfaceTypeExpression annotationType) {
         this.annotationType = annotationType;
+    }
+
+    public AnnotationExpression(final ClassOrInterfaceTypeExpression annotationType,
+                                final Expression value) {
+        this(annotationType, Map.of("value", value));
     }
 
     public AnnotationExpression(final String annotationType,
                                 final Map<String, Expression> arguments) {
-        this(new ParameterizedType(new NameExpression(annotationType)), arguments);
+        this(new ClassOrInterfaceTypeExpression(annotationType), arguments);
     }
 
-    public AnnotationExpression(final ParameterizedType annotationType,
+    public AnnotationExpression(final ClassOrInterfaceTypeExpression annotationType,
                                 final Map<String, Expression> arguments) {
         this.annotationType = annotationType;
         this.arguments.putAll(arguments);
     }
 
-    public ParameterizedType getAnnotationType() {
+    public ClassOrInterfaceTypeExpression getAnnotationType() {
         return annotationType;
     }
 
     public Map<String, Expression> getArguments() {
         return arguments;
+    }
+
+    public AnnotationExpression argument(final String name,
+                                         final Expression expression) {
+        arguments.put(name, expression);
+        return this;
     }
 
     @Override

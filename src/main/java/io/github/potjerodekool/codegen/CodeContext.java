@@ -1,7 +1,6 @@
 package io.github.potjerodekool.codegen;
 
 import io.github.potjerodekool.codegen.model.CompilationUnit;
-import io.github.potjerodekool.codegen.model.tree.Tree;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
 

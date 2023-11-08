@@ -2,7 +2,6 @@ package io.github.potjerodekool.codegen.model.tree;
 
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 
-//TODO Replace with AbstractTree
 public interface Tree {
 
     TypeMirror getType();

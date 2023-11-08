@@ -1,6 +1,7 @@
 package io.github.potjerodekool.codegen.model.util.type.check;
 
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.util.type.SimpleVisitor;
 
 abstract class AbstractTypeRelation extends SimpleVisitor<Boolean, TypeMirror> {
@@ -59,7 +60,7 @@ abstract class AbstractTypeRelation extends SimpleVisitor<Boolean, TypeMirror> {
     }
 
     @Override
-    public Boolean visitVarType(final VarTypeImpl varType, final TypeMirror typeMirror) {
+    public Boolean visitVarType(final VarType varType, final TypeMirror typeMirror) {
         return false;
     }
 }

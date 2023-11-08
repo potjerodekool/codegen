@@ -6,14 +6,18 @@ import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.expression.ArrayInitializerExpression;
 import io.github.potjerodekool.codegen.model.tree.expression.NewClassExpression;
+import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.type.BoundKind;
+import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpression;
 import io.github.potjerodekool.codegen.model.tree.type.PrimitiveTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.io.Printer;
 import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.type.WildCardTypeExpression;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.util.Counter;
 import io.github.potjerodekool.codegen.model.util.Elements;
 import io.github.potjerodekool.codegen.model.util.QualifiedName;
@@ -21,89 +25,51 @@ import io.github.potjerodekool.codegen.model.util.type.Types;
 
 import java.util.List;
 
-public class JavaAstPrinter extends AbstractAstPrinter {
+public class JavaAstPrinter extends AbstractAstPrinter
+    implements JTreeVisitor<Void, CodeContext> {
 
     public JavaAstPrinter(final Printer printer,
                           final Types types) {
         super(printer, types);
     }
 
+    /*
     //Elements
-    @Override
-    public Void visitType(final TypeElement typeElement,
-                          final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
+     */
 
-    void visitPrimaryConstructor(final MethodDeclaration primaryConstructor,
+    void visitPrimaryConstructor(final MethodDeclaration<?> primaryConstructor,
                                  final CodeContext context) {
         visitMethodParameters(primaryConstructor.getParameters(), context);
     }
 
-    @Override
-    public Void visitVariable(final VariableElement variableElement,
-                              final CodeContext context) {
-        /*
-        final var isField = variableElement.getKind() == ElementKind.FIELD;
-        final var annotations = variableElement.getAnnotationMirrors();
-
-        printAnnotations(annotations, isField, context);
-
-        final var modifiers = variableElement.getModifiers();
-
-        if (modifiers.size() > 0
-                && isField) {
-            printer.printIndent();
-        }
-
-        if (modifiers.size() > 0
-                && annotations.size() > 0
-                && variableElement.getKind() == ElementKind.PARAMETER) {
-            printer.print(" ");
-        }
-
-        printModifiers(modifiers);
-
-        if (annotations.size() > 0
-                || modifiers.size() > 0) {
-            printer.print(" ");
-        }
-
-        variableElement.asType().accept(this, context);
-        printer.print(" ");
-        printer.print(variableElement.getSimpleName());
-
-        if (isField) {
-            final var initExpression = ((VariableSymbol) variableElement).getInitExpression();
-            if (initExpression != null) {
-                printer.print(" = ");
-                initExpression.accept(this, context);
-            }
-            printer.printLn(";");
-        }
-        */
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visitExecutable(final ExecutableElement methodElement,
-                                final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
-
     //Expressions
+
+
     @Override
-    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration,
+    public Void visitVariableDeclaration(final JVariableDeclaration variableDeclaration, final CodeContext context) {
+        return visitVariableDeclaration((VariableDeclaration<?>) variableDeclaration, context);
+    }
+
+    @Override
+    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
                                          final CodeContext context) {
         final var isField = variableDeclaration.getSymbol().getKind() == ElementKind.FIELD;
+
+        final var annotations = variableDeclaration.getAnnotations();
+
+        if (!annotations.isEmpty()) {
+            printAnnotations(annotations, true, false, context);
+            printer.print(" ");
+        }
+
         final var modifiers = variableDeclaration.getModifiers();
 
-        if (modifiers.size() > 0
+        if (!modifiers.isEmpty()
                 && isField) {
             printer.printIndent();
         }
 
-        if (modifiers.size() > 0) {
+        if (!modifiers.isEmpty()) {
             printModifiers(modifiers);
             printer.print(" ");
         }
@@ -129,8 +95,10 @@ public class JavaAstPrinter extends AbstractAstPrinter {
     public Void visitNewClassExpression(final NewClassExpression newClassExpression,
                                         final CodeContext context) {
         printer.print("new ");
-        newClassExpression.getClassType().accept(this, context);
-        printer.print("()");
+        newClassExpression.getClazz().accept(this, context);
+        printer.print("(");
+        printExpressionList(newClassExpression.getArguments(), ", ", context);
+        printer.print(")");
         return null;
     }
 
@@ -197,7 +165,7 @@ public class JavaAstPrinter extends AbstractAstPrinter {
         printer.print("@");
         printer.print(resolveClassName(Elements.getQualifiedName(annotation.getAnnotationType().asElement()), context));
 
-        if (elementValues.size() > 0) {
+        if (!elementValues.isEmpty()) {
             printer.print("(");
 
             final var lastIndex = elementValues.size() - 1;
@@ -228,7 +196,7 @@ public class JavaAstPrinter extends AbstractAstPrinter {
         printer.print("@");
         printer.print(resolveClassName(Elements.getQualifiedName(annotationType.asElement()), context));
 
-        if (elementValues.size() > 0) {
+        if (!elementValues.isEmpty()) {
             printer.print("(");
 
             final var lastIndex = elementValues.size() - 1;
@@ -319,13 +287,15 @@ public class JavaAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitVarType(final VarTypeImpl varType, final CodeContext codeContext) {
+    public Void visitVarType(final VarType varType, final CodeContext codeContext) {
         printer.print("var");
         return null;
     }
 
     @Override
-    public Void visitClassDeclaration(final ClassDeclaration classDeclaration, final CodeContext context) {
+    public Void visitClassDeclaration(final JClassDeclaration classDeclaration, final CodeContext context) {
+        final var classContext = context.child(classDeclaration);
+
         printer.printIndent();
 
         final var annotations = classDeclaration.getAnnotations();
@@ -333,7 +303,8 @@ public class JavaAstPrinter extends AbstractAstPrinter {
         printAnnotations(
                 annotations,
                 true,
-                context
+                false,
+                classContext
         );
 
         printModifiers(classDeclaration.getModifiers());
@@ -342,7 +313,9 @@ public class JavaAstPrinter extends AbstractAstPrinter {
             printer.print(" ");
         }
 
-        switch (classDeclaration.getKind()) {
+        final ElementKind kind = classDeclaration.getKind();
+
+        switch (kind) {
             case CLASS -> printer.print("class ");
             case INTERFACE -> printer.print("interface ");
             case RECORD -> printer.print("record ");
@@ -353,19 +326,19 @@ public class JavaAstPrinter extends AbstractAstPrinter {
         final var primaryConstructor = classDeclaration.getPrimaryConstructor();
 
         if (primaryConstructor != null) {
-            visitPrimaryConstructor(primaryConstructor, context);
+            visitPrimaryConstructor(primaryConstructor, classContext);
         }
 
         final var superType = classDeclaration.getExtending();
 
         if (superType != null) {
             printer.print(" extends ");
-            superType.accept(this, context);
+            superType.accept(this, classContext);
         }
 
         final var interfaces = classDeclaration.getImplementing();
 
-        if (interfaces.size() > 0) {
+        if (!interfaces.isEmpty()) {
             printer.print(" implements ");
 
             for (int interfaceIndex = 0; interfaceIndex < interfaces.size(); interfaceIndex++) {
@@ -373,7 +346,7 @@ public class JavaAstPrinter extends AbstractAstPrinter {
                     printer.print(", ");
                 }
                 final var interfaceType = interfaces.get(interfaceIndex);
-                interfaceType.accept(this, context);
+                interfaceType.accept(this, classContext);
             }
         }
 
@@ -388,7 +361,7 @@ public class JavaAstPrinter extends AbstractAstPrinter {
         for (int i = 0; i < enclosedElements.size(); i++) {
             final var enclosedElement = enclosedElements.get(i);
 
-            enclosedElement.accept(this, context);
+            enclosedElement.accept(this, classContext);
 
             if (i < lastIndex) {
                 printer.printLn();
@@ -402,35 +375,44 @@ public class JavaAstPrinter extends AbstractAstPrinter {
     }
 
     @Override
-    public Void visitMethodDeclaration(final MethodDeclaration methodDeclaration,
+    public Void visitMethodDeclaration(final JMethodDeclaration methodDeclaration,
                                        final CodeContext context) {
+        final var methodContext = context.child(methodDeclaration);
+
         final var annotations = methodDeclaration.getAnnotations();
 
-        if (annotations.size() > 0) {
-            printAnnotations(annotations, true, context);
+        if (!annotations.isEmpty()) {
+            printAnnotations(annotations, true, true, methodContext);
             printer.print(" ");
         }
 
         final var modifiers = methodDeclaration.getModifiers();
 
-        if (modifiers.size() > 0) {
+        if (!modifiers.isEmpty()) {
             printer.printIndent();
             printModifiers(modifiers);
             printer.print(" ");
         }
 
-        printer.printIndent();
-
         if (methodDeclaration.getKind() != ElementKind.CONSTRUCTOR) {
-            methodDeclaration.getReturnType().getType().accept(this, context);
+            methodDeclaration.getReturnType().getType().accept(this, methodContext);
             printer.print(" ");
         }
 
         printer.print(methodDeclaration.getSimpleName());
 
-        visitMethodParameters(methodDeclaration.getParameters(), context);
+        visitMethodParameters(methodDeclaration.getParameters(), methodContext);
 
-        methodDeclaration.getBody().ifPresent(body -> body.accept(this, context));
+        final var bodyOptional = methodDeclaration.getBody();
+
+        if (bodyOptional.isPresent()) {
+            final var body = bodyOptional.get();
+            printer.print(" ");
+            body.accept(this, methodContext);
+        } else {
+            printer.printLn(";");
+        }
+
         return null;
     }
 
@@ -444,4 +426,38 @@ public class JavaAstPrinter extends AbstractAstPrinter {
         primitiveTypeExpression.getType().accept(this, param);
         return null;
     }
+
+    @Override
+    public Void visitClassOrInterfaceTypeExpression(final ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression,
+                                                    final CodeContext context) {
+        final var type = classOrInterfaceTypeExpression.getType();
+
+        if (type instanceof ClassType classType) {
+            final var classSymbol = classType.asElement();
+            final var resolvedClassName = resolveClassName(classSymbol.getQualifiedName(), context);
+            printer.print(resolvedClassName);
+        } else {
+            printer.print(classOrInterfaceTypeExpression.getName());
+        }
+
+        final var arguments = classOrInterfaceTypeExpression.getTypeArguments();
+
+        if (!arguments.isEmpty()) {
+            printer.print("<");
+            final var lastIndex = arguments.size() -1;
+
+            for (int i = 0; i < arguments.size(); i++) {
+                arguments.get(i).accept(this, context);
+
+                if (i < lastIndex) {
+                    printer.print(",");
+                }
+            }
+
+            printer.print(">");
+        }
+
+        return null;
+    }
+
 }

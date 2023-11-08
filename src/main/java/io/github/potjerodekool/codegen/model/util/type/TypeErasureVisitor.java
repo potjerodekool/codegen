@@ -2,6 +2,7 @@ package io.github.potjerodekool.codegen.model.util.type;
 
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 
 import java.util.List;
 
@@ -76,7 +77,7 @@ public class TypeErasureVisitor extends AbstractTypeVisitor<TypeMirror, Object> 
     }
 
     @Override
-    public TypeMirror visitVarType(final VarTypeImpl varType, final Object o) {
+    public TypeMirror visitVarType(final VarType varType, final Object o) {
         throw new UnsupportedOperationException();
     }
 }

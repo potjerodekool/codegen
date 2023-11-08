@@ -4,16 +4,18 @@ import io.github.potjerodekool.codegen.io.FileManager;
 import io.github.potjerodekool.codegen.io.FileManagerImpl;
 import io.github.potjerodekool.codegen.io.Filer;
 import io.github.potjerodekool.codegen.io.FilerImpl;
-import io.github.potjerodekool.codegen.loader.asm.AsmTypeElementLoader;
-import io.github.potjerodekool.codegen.loader.kotlin.KotlinTypeElementLoader;
+import io.github.potjerodekool.codegen.loader.java.JavaElements;
+import io.github.potjerodekool.codegen.loader.kotlin.KotlinElements;
+import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.util.Elements;
-import io.github.potjerodekool.codegen.model.util.ElementsImpl;
 import io.github.potjerodekool.codegen.model.util.SymbolTable;
 import io.github.potjerodekool.codegen.model.util.type.JavaTypes;
 import io.github.potjerodekool.codegen.model.util.type.KotlinTypes;
 import io.github.potjerodekool.codegen.model.util.type.Types;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Environment {
 
@@ -27,12 +29,13 @@ public class Environment {
 
     private final Filer filer;
 
+    private final List<CompilationUnit> compilationUnits = new ArrayList<>();
+
     public Environment(final URL[] classPath) {
         this.symbolTable = new SymbolTable();
-        final var javaTypeElementLoader = new AsmTypeElementLoader(classPath, symbolTable);
-        final var kotlinTypeElementLoader = new KotlinTypeElementLoader(classPath, javaTypeElementLoader, symbolTable);
-        this.elements = new ElementsImpl(kotlinTypeElementLoader, symbolTable);
-        final var javaTypes = new JavaTypes(kotlinTypeElementLoader);
+        final var javaTypes = new JavaTypes(symbolTable);
+        final var javaElements = new JavaElements(symbolTable, classPath, javaTypes);
+        this.elements = new KotlinElements(symbolTable, classPath, javaElements);
         this.kotlinTypes = new KotlinTypes(javaTypes);
         this.fileManager = new FileManagerImpl();
         this.filer = new FilerImpl(elements, kotlinTypes, fileManager);
@@ -56,5 +59,9 @@ public class Environment {
 
     public FileManager getFileManager() {
         return fileManager;
+    }
+
+    public List<CompilationUnit> getCompilationUnits() {
+        return compilationUnits;
     }
 }

@@ -4,5 +4,5 @@ public enum BoundKind {
 
     EXTENDS(),
     SUPER(),
-    UNBOUND();
+    UNBOUND()
 }

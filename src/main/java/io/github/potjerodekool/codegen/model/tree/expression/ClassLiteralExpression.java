@@ -2,7 +2,6 @@ package io.github.potjerodekool.codegen.model.tree.expression;
 
 import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.type.TypeExpression;
-import io.github.potjerodekool.codegen.model.type.TypeMirror;
 
 public class ClassLiteralExpression extends AbstractExpression implements LiteralExpression {
 

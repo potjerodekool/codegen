@@ -1,19 +1,19 @@
 package io.github.potjerodekool.codegen.model.tree;
 
 import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
-import io.github.potjerodekool.codegen.model.tree.expression.NameExpression;
+import io.github.potjerodekool.codegen.model.tree.expression.IdentifierExpression;
 
 public class PackageDeclaration extends AbstractTree {
 
-    private final NameExpression name;
+    private final IdentifierExpression name;
 
     private PackageSymbol packageSymbol;
 
-    public PackageDeclaration(final NameExpression name) {
+    public PackageDeclaration(final IdentifierExpression name) {
         this.name = name;
     }
 
-    public NameExpression getName() {
+    public IdentifierExpression getName() {
         return name;
     }
 
@@ -28,5 +28,9 @@ public class PackageDeclaration extends AbstractTree {
     @Override
     public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
         return visitor.visitPackageDeclaration(this, param);
+    }
+
+    public boolean isDefaultPackage() {
+        return name.getName().contentEquals("");
     }
 }

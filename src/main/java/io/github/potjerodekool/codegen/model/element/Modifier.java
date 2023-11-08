@@ -1,5 +1,7 @@
 package io.github.potjerodekool.codegen.model.element;
 
+import java.util.Objects;
+
 public enum Modifier {
 
     PUBLIC,
@@ -19,10 +21,27 @@ public enum Modifier {
     VOLATILE,
     SYNCHRONIZED,
     NATIVE,
-    STRICTFP;
+    STRICTFP,
+    VAR,
+
+    //Kotlin
+    VAL,
+    OVERRIDE;
+
+    public static Modifier toKotlinModifier(final Modifier modifier) {
+        Objects.requireNonNull(modifier);
+
+        if (modifier == Modifier.FINAL) {
+            return Modifier.VAL;
+        } else {
+            return modifier;
+        }
+    }
 
     @Override
     public String toString() {
         return name().toLowerCase(java.util.Locale.US);
     }
+
+
 }

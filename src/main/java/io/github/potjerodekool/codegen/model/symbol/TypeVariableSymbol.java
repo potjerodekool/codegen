@@ -7,13 +7,19 @@ import io.github.potjerodekool.codegen.model.type.TypeVariableImpl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-public class TypeVariableSymbol extends TypeSymbol<TypeVariableSymbol> implements TypeParameterElement {
+public class TypeVariableSymbol extends TypeSymbol implements TypeParameterElement {
 
     public TypeVariableSymbol(final Name simpleName) {
         super(ElementKind.TYPE_PARAMETER, simpleName, new ArrayList<>());
         setType(new TypeVariableImpl(this));
+    }
+
+    @Override
+    public ElementKind getKind() {
+        return ElementKind.TYPE_PARAMETER;
     }
 
     @Override
@@ -47,7 +53,7 @@ public class TypeVariableSymbol extends TypeSymbol<TypeVariableSymbol> implement
         final var stringBuilder = new StringBuilder();
         stringBuilder.append(getSimpleName());
 
-        if (getBounds().size() > 0) {
+        if (!getBounds().isEmpty()) {
             stringBuilder.append(" extends ");
             stringBuilder.append(getBounds().stream()
                     .map(Objects::toString)
@@ -56,5 +62,10 @@ public class TypeVariableSymbol extends TypeSymbol<TypeVariableSymbol> implement
         }
 
         return stringBuilder.toString();
+    }
+
+    @Override
+    public Set<? extends Modifier> getModifiers() {
+        return Set.of();
     }
 }

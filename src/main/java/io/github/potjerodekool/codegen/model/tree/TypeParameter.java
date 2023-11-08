@@ -1,6 +1,5 @@
 package io.github.potjerodekool.codegen.model.tree;
 
-import io.github.potjerodekool.codegen.model.UnknownDirectiveException;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 
 public class TypeParameter implements Tree {

@@ -2,9 +2,9 @@ package io.github.potjerodekool.codegen.model.element;
 
 public class NameImpl implements Name {
 
-    private final CharSequence value;
+    private final String value;
 
-    NameImpl(final CharSequence value) {
+    NameImpl(final String value) {
         this.value = value;
     }
 
@@ -29,14 +29,54 @@ public class NameImpl implements Name {
     }
 
     @Override
+    public Name append(final CharSequence childName) {
+        return new NameImpl(value + "." + childName);
+    }
+
+    public CharSequence getValue() {
+        return value;
+    }
+
+    @Override
+    public Name shortName() {
+        final var start = value.lastIndexOf('.') + 1;
+
+        if (start == 0) {
+            return this;
+        }
+
+        final var shortNameValue = value.substring(start);
+        return Name.of(shortNameValue);
+    }
+
+    @Override
+    public Name packagePart() {
+        final var end = value.lastIndexOf('.');
+
+        if (end < 0) {
+            return Name.EMPTY;
+        } else {
+            return Name.of(value.substring(0, end));
+        }
+    }
+
+
+    @Override
     public String toString() {
-        return value.toString();
+        return value;
     }
 
     @Override
     public boolean equals(final Object obj) {
-        return obj == this
-                || (obj instanceof Name otherName && value.equals(otherName.toString()));
+        if (obj == this) {
+            return true;
+        }
+
+        if (!(obj instanceof Name other)) {
+            return false;
+        }
+
+        return value.equals(other.toString());
     }
 
     @Override

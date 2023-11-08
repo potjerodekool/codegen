@@ -2,6 +2,7 @@ package io.github.potjerodekool.codegen.model.type;
 
 import io.github.potjerodekool.codegen.model.AnnotatedConstruct;
 import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -56,6 +57,10 @@ public interface TypeMirror extends AnnotatedConstruct {
 
     TypeMirror asNonNullableType();
 
+    default TypeMirrorBuilder<? extends TypeMirror> builder() {
+        throw new UnsupportedOperationException();
+    }
+
     interface Visitor<R,P> {
 
         R visitType(TypeMirror type, P p);
@@ -78,6 +83,6 @@ public interface TypeMirror extends AnnotatedConstruct {
 
         R visitTypeVariable(TypeVariable typeVariable, P p);
 
-        R visitVarType(VarTypeImpl varType, P p);
+        R visitVarType(VarType varType, P p);
     }
 }

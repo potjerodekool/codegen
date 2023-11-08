@@ -6,14 +6,13 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Set;
 
-
 public interface Element {
 
     TypeMirror asType();
 
     ElementKind getKind();
 
-    Set<Modifier> getModifiers();
+    Set<? extends Modifier> getModifiers();
 
     Name getSimpleName();
 

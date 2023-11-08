@@ -81,7 +81,7 @@ public class Printer {
 
     public Printer printIndent() {
         for (int i = 0; i < tabs; i++) {
-            print("\t");
+            print("    ");
         }
         return this;
     }

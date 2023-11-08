@@ -1,26 +1,25 @@
 package io.github.potjerodekool.codegen;
 
+import io.github.potjerodekool.codegen.io.Printer;
 import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.CompilationUnitVisitor;
-import io.github.potjerodekool.codegen.io.Printer;
 import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.element.ElementVisitor;
-import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
-import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
+import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
+import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
+import io.github.potjerodekool.codegen.model.tree.PackageDeclaration;
+import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
+import io.github.potjerodekool.codegen.model.tree.statement.*;
 import io.github.potjerodekool.codegen.model.tree.type.AnnotatedTypeExpression;
 import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.type.ParameterizedType;
 import io.github.potjerodekool.codegen.model.tree.type.VarTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
-import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
-import io.github.potjerodekool.codegen.model.tree.*;
-import io.github.potjerodekool.codegen.model.tree.statement.*;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.util.Elements;
 import io.github.potjerodekool.codegen.model.util.QualifiedName;
 import io.github.potjerodekool.codegen.model.util.type.Types;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void, CodeContext>,
         TreeVisitor<Void, CodeContext>,
-        ElementVisitor<Void, CodeContext>,
         TypeVisitor<Void, CodeContext>,
         AnnotationValueVisitor<Void, CodeContext> {
 
@@ -49,23 +47,16 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
     public Void visitCompilationUnit(final CompilationUnit compilationUnit,
                                      final CodeContext context) {
         final var packageDeclaration = compilationUnit.getPackageDeclaration();
-        final PackageSymbol packageElement;
 
-        if (packageDeclaration != null) {
-            packageElement = packageDeclaration.getPackageSymbol();
-        } else {
-            packageElement = compilationUnit.getPackageElement();
-        }
-
-        if (!packageElement.isDefaultPackage()) {
-            packageElement.accept(this, context);
+        if (packageDeclaration != null && !packageDeclaration.isDefaultPackage()) {
+            packageDeclaration.accept(this, context);
             printer.printLn();
             printer.printLn();
         }
 
         final var imports = compilationUnit.getImports();
 
-        if (imports.size() > 0) {
+        if (!imports.isEmpty()) {
             imports.forEach(importStr -> {
                 printer.print("import " + importStr);
                 if (useSemiColonAfterStatement()) {
@@ -83,25 +74,6 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
     }
 
     @Override
-    public Void visit(final Element e, final CodeContext codeContext) {
-        return visitUnknown(e, codeContext);
-    }
-
-    //Elements
-    @Override
-    public Void visitPackage(final PackageElement packageElement,
-                             final CodeContext context) {
-        if (!packageElement.isUnnamed()) {
-            printer.print("package " + packageElement.getQualifiedName());
-
-            if (useSemiColonAfterStatement()) {
-                printer.print(";");
-            }
-        }
-        return null;
-    }
-
-    @Override
     public Void visitPackageDeclaration(final PackageDeclaration packageDeclaration, final CodeContext param) {
         final var packageElement = packageDeclaration.getPackageSymbol();
 
@@ -115,14 +87,10 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return null;
     }
 
-    @Override
-    public Void visitType(final TypeElement e, final CodeContext codeContext) {
-        return visitUnknown(e, codeContext);
-    }
-
-    protected void printModifiers(final Set<Modifier> modifiers) {
-        if (modifiers.size() > 0) {
+    protected void printModifiers(final Set<? extends Modifier> modifiers) {
+        if (!modifiers.isEmpty()) {
             final var mods = modifiers.stream()
+                    .sorted(ModifierSorter.INSTANCE)
                     .map(this::modifierToString)
                     .collect(Collectors.joining(" "));
             printer.print(mods);
@@ -133,22 +101,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return modifier.name().toLowerCase();
     }
 
-    @Override
-    public Void visitExecutable(final ExecutableElement methodElement, final CodeContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visitTypeParameter(final TypeParameterElement e, final CodeContext codeContext) {
-        return visitUnknown(e, codeContext);
-    }
-
-    @Override
-    public Void visitUnknown(final Element e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void visitMethodParameters(final List<VariableDeclaration> parameters,
+    public void visitMethodParameters(final List<VariableDeclaration<?>> parameters,
                                       final CodeContext context) {
         printer.print("(");
 
@@ -164,48 +117,9 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         printer.print(")");
     }
 
-    /*
-    @Override
-    public Void visitVariable(final VariableElement variableElement,
-                              final CodeContext context) {
-        final var isField = variableElement.getKind() == ElementKind.FIELD;
-        final var annotations = variableElement.getAnnotationMirrors();
-
-        printAnnotations(annotations, isField, context);
-
-        final var modifiers = variableElement.getModifiers();
-
-        if (modifiers.size() > 0
-                && isField) {
-            printer.printIndent();
-        }
-
-        if (modifiers.size() > 0
-                && annotations.size() > 0
-                && variableElement.getKind() == ElementKind.PARAMETER) {
-            printer.print(" ");
-        }
-
-        printModifiers(modifiers);
-
-        if (annotations.size() > 0
-                || modifiers.size() > 0) {
-            printer.print(" ");
-        }
-
-        variableElement.asType().accept(this, context);
-        printer.print(" ");
-        printer.print(variableElement.getSimpleName());
-
-        if (isField) {
-            printer.printLn(";");
-        }
-        return null;
-    }
-     */
-
     protected void printAnnotations(final List<AnnotationExpression> annotations,
                                     final boolean addNewLineAfterAnnotation,
+                                    final boolean printIndent,
                                     final CodeContext context) {
         if (annotations.isEmpty()) {
             return;
@@ -214,7 +128,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         final var lastIndex = annotations.size() - 1;
 
         for (int i = 0; i < annotations.size(); i++) {
-            if (addNewLineAfterAnnotation) {
+            if (printIndent) {
                 printer.printIndent();
             }
 
@@ -258,13 +172,18 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
 
     protected Name resolveAnnotationClassName(final AnnotationExpression annotation,
                                               final CodeContext context) {
-        final var annotType = (ParameterizedType) annotation.getAnnotationType();
-        final var name = ((NameExpression) annotType.getClazz()).getName();
+        final var annotType = annotation.getAnnotationType();
+        final var name = annotType.getName();
 
         return resolveClassName(
                 name,
                 context
         );
+    }
+
+    protected Name resolveAnnotationClassName(final Element annotationElement,
+                                              final CodeContext context) {
+        return resolveClassName(annotationElement, context);
     }
 
     protected Name name(final String value) {
@@ -294,9 +213,6 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         });
         printer.deIndent();
 
-        if (statements.isEmpty()) {
-            printer.printLn();
-        }
         printer.printIndent();
         printer.printLn("}");
         return null;
@@ -356,14 +272,14 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
                                            final CodeContext context) {
         fieldAccessExpression.getScope().accept(this, context);
         printer.print(".");
-        fieldAccessExpression.getField().accept(this, context);
+        printer.print(fieldAccessExpression.getField());
         return null;
     }
 
     @Override
-    public Void visitNameExpression(final NameExpression nameExpression,
-                                    final CodeContext context) {
-        final var symbol = nameExpression.getSymbol();
+    public Void visitIdentifierExpression(final IdentifierExpression identifierExpression,
+                                          final CodeContext context) {
+        final var symbol = identifierExpression.getSymbol();
 
         if (symbol instanceof ClassSymbol classSymbol) {
             if (context.resolveCompilationUnit()
@@ -371,10 +287,10 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
                     .isPresent()) {
                 printer.print(classSymbol.getSimpleName());
             } else {
-                printer.print(nameExpression.getName());
+                printer.print(identifierExpression.getName());
             }
         } else {
-            printer.print(nameExpression.getName());
+            printer.print(identifierExpression.getName());
         }
         return null;
     }
@@ -404,7 +320,9 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
                 final var classLiteralExpression = (ClassLiteralExpression) literalExpression;
                 final var type = classLiteralExpression.getType();
 
-                if (context.getAstNode() instanceof AnnotationMirror) {
+                if (type == null) {
+                    classLiteralExpression.getClazz().accept(this, context);
+                } else if (context.getAstNode() instanceof AnnotationMirror) {
                     final Name className;
                     if (type instanceof DeclaredType declaredType) {
                         className = resolveClassName(declaredType.asElement(), context);
@@ -417,11 +335,10 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
                     final Name className = resolveClassName(declaredType.asElement(), context);
                     printer.print(className + ".class");
                 } else if (type instanceof PrimitiveType p) {
-                    final var boxedElement = types.boxedClass(p);
-                    final Name className = resolveClassName(boxedElement.getQualifiedName(), context);
-                    printer.print(className + ".TYPE");
+                    final var className = primitiveClassName(p);
+                    printer.print(className + ".class");
                 } else {
-                    throw new UnsupportedOperationException("TODO");
+                    throw new UnsupportedOperationException("TODO " + type);
                 }
             }
             case STRING -> {
@@ -438,6 +355,20 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
             }
         }
         return null;
+    }
+
+    private String primitiveClassName(final PrimitiveType primitiveType) {
+        return switch (primitiveType.getKind()) {
+            case BOOLEAN -> "boolean";
+            case BYTE -> "byte";
+            case SHORT -> "short";
+            case INT -> "int";
+            case LONG -> "long";
+            case CHAR -> "char";
+            case FLOAT -> "float";
+            case DOUBLE -> "double";
+            default -> throw new IllegalArgumentException(String.format("kind %s is not a primitive", primitiveType.getKind()));
+        };
     }
 
     @Override
@@ -466,31 +397,30 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return null;
     }
 
-    @Override
-    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration,
-                                         final CodeContext context) {
+    protected Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
+                                            final CodeContext context) {
         final var isField = variableDeclaration.getSymbol().getKind() == ElementKind.FIELD;
         final var annotations = variableDeclaration.getAnnotations();
 
-        printAnnotations(annotations, isField, context);
+        printAnnotations(annotations, isField, false, context);
 
         final var modifiers = variableDeclaration.getModifiers();
 
-        if (modifiers.size() > 0
+        if (!modifiers.isEmpty()
                 && isField) {
             printer.printIndent();
         }
 
-        if (modifiers.size() > 0
-                && annotations.size() > 0
+        if (!modifiers.isEmpty()
+                && !annotations.isEmpty()
                 && variableDeclaration.getSymbol().getKind() == ElementKind.PARAMETER) {
             printer.print(" ");
         }
 
         printModifiers(modifiers);
 
-        if (annotations.size() > 0
-                || modifiers.size() > 0) {
+        if (!annotations.isEmpty()
+                || !modifiers.isEmpty()) {
             printer.print(" ");
         }
 
@@ -569,7 +499,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
 
         final var typeArgs = declaredType.getTypeArguments();
 
-        if (typeArgs.size() > 0) {
+        if (!typeArgs.isEmpty()) {
             printer.print("<");
 
             final int lastIndex = typeArgs.size() - 1;
@@ -750,70 +680,94 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return resolveClassName(Elements.getQualifiedName(element), context);
     }
 
-    protected Name resolveClassName(final String className,
-                                    final CodeContext context) {
-        return resolveClassName(Name.of(className), context);
-    }
-
     protected Name resolveClassName(final Name className,
                                     final CodeContext context) {
-        final var compilationUnit = findCompilationUnit(context);
+        final var classNameStr = className.toString();
+
+        if (classNameStr.startsWith("java.lang.")) {
+            return Name.of(classNameStr.substring("java.lang.".length()));
+        }
+
+        final var compilationUnit = findAstNodeOfType(context, CompilationUnit.class);
 
         if (compilationUnit.getImports().contains(className)) {
+            return QualifiedName.from(className).simpleName();
+        }
+
+        final var classDeclaration = findAstNodeOfType(context, ClassDeclaration.class);
+
+        if (classDeclaration.getClassSymbol().getQualifiedName().contentEquals(className)) {
+            return QualifiedName.from(className).simpleName();
+        }
+
+        final var topLevelClassDeclaration = findTopLevelClassDeclaration(context);
+        final var packageDeclaration = (PackageDeclaration) topLevelClassDeclaration.getEnclosing();
+
+        final var qualifiedName = QualifiedName.from(className);
+
+        if (packageDeclaration.getName().getName()
+                .equals(qualifiedName.packageName().toString())) {
+            return qualifiedName.simpleName();
+        }
+
+        if (compilationUnit.getClassDeclarations().stream()
+                .anyMatch(it -> it.getClassSymbol().getQualifiedName().contentEquals(className))) {
             return QualifiedName.from(className).simpleName();
         }
 
         return className;
     }
 
-    private CompilationUnit findCompilationUnit(final CodeContext context) {
+    private ClassDeclaration<?> findTopLevelClassDeclaration(final CodeContext context) {
         final var astNode = context.getAstNode();
-        if (astNode instanceof CompilationUnit cu) {
-            return cu;
+
+        if (astNode instanceof ClassDeclaration<?> classDeclaration) {
+            final var enclosing = classDeclaration.getEnclosing();
+            if (enclosing instanceof PackageDeclaration) {
+                return classDeclaration;
+            }
+        }
+
+        final var parentContext = context.getParentContext();
+
+        if (parentContext != null) {
+            return findTopLevelClassDeclaration(context.getParentContext());
+        } else {
+            throw new AstNodeNotFoundException("Failed to find top level class declaration");
+        }
+    }
+
+    private <T> T findAstNodeOfType(final CodeContext context,
+                                    final Class<T> type) {
+        final var astNode = context.getAstNode();
+
+        if (astNode != null && type.isAssignableFrom(astNode.getClass())) {
+            return (T) astNode;
         } else {
             final var parentContext = context.getParentContext();
 
             if (parentContext != null) {
-                return findCompilationUnit(parentContext);
+                return findAstNodeOfType(parentContext, type);
             } else {
-                throw new IllegalStateException("Failed to find compilation unit in context");
+                throw new AstNodeNotFoundException(String.format("Failed to find ast node in context of type %s ", type.getSimpleName()));
             }
         }
-    }
-
-    @Override
-    public Void visitParameterizedType(final ParameterizedType parameterizedType, final CodeContext param) {
-        parameterizedType.getClazz().accept(this, param);
-
-        final var arguments = parameterizedType.getArguments();
-
-        printer.print("<");
-        final var lastIndex = arguments.size() -1;
-
-        for (int i = 0; i < arguments.size(); i++) {
-            arguments.get(i).accept(this, param);
-
-            if (i < lastIndex) {
-                printer.print(",");
-            }
-        }
-
-        printer.print(">");
-        return null;
     }
 
     @Override
     public Void visitAnnotatedType(final AnnotatedTypeExpression annotatedTypeExpression, final CodeContext context) {
         final var annotations = annotatedTypeExpression.getAnnotations();
 
-        if (annotations.size() > 0) {
+        if (!annotations.isEmpty()) {
             throw new UnsupportedOperationException("TODO");
             //printAnnotations(annotations,false, context);
             //printer.print(" ");
         }
 
-        final var element = types.asElement(annotatedTypeExpression.getIdentifier().getType());
-        printer.print(resolveClassName(element, context));
+        final var identifier = annotatedTypeExpression.getIdentifier();
+
+        identifier.accept(this, context);
+
 
         /*
         final var typeArgs = annotatedTypeExpression.getTypeArguments();
@@ -838,36 +792,25 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
 
         return null;
     }
-    @Override
-    public Void visitMethodDeclaration(final MethodDeclaration methodDeclaration,
-                                       final CodeContext context) {
-        printer.printIndent();
-
-        final var modifiers = methodDeclaration.getModifiers();
-        printModifiers(modifiers);
-
-        if (modifiers.size() > 0) {
-            printer.print(" ");
-        }
-
-        if (methodDeclaration.getKind() != ElementKind.CONSTRUCTOR) {
-            methodDeclaration.getReturnType().accept(this, context);
-            printer.print(" ");
-        }
-
-        printer.print(methodDeclaration.getSimpleName());
-
-        visitMethodParameters(methodDeclaration.getParameters(), context);
-        printer.printLn();
-
-        methodDeclaration.getBody().ifPresent(body -> body.accept(this, context));
-        return null;
-    }
 
     @Override
     public Void visitVarTypeExpression(final VarTypeExpression varTypeExpression, final CodeContext param) {
         printer.print("var");
         return null;
+    }
+
+    protected void printExpressionList(final List<Expression> list,
+                                       final String separator,
+                                       final CodeContext param) {
+        final var lastIndex = list.size() - 1;
+
+        for (int i = 0; i < list.size(); i++) {
+            list.get(i).accept(this, param);
+
+            if (i < lastIndex) {
+                printer.printLn(separator);
+            }
+        }
     }
 }
 

@@ -2,6 +2,7 @@ package io.github.potjerodekool.codegen.model.util;
 
 import io.github.potjerodekool.codegen.model.AnnotatedConstruct;
 import io.github.potjerodekool.codegen.model.element.*;
+import io.github.potjerodekool.codegen.model.element.java.ElementFilter;
 
 import java.util.*;
 
@@ -31,7 +32,9 @@ public interface Elements {
         }
     }
 
-    TypeElement getTypeElement(CharSequence name);
+    default TypeElement getTypeElement(final CharSequence name) {
+        return getTypeElement(null, name);
+    }
 
     default TypeElement getTypeElement(ModuleElement module, CharSequence name) {
         return null;

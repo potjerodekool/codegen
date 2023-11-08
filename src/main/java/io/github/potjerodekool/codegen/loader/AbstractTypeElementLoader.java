@@ -1,9 +1,8 @@
 package io.github.potjerodekool.codegen.loader;
 
-import io.github.potjerodekool.codegen.model.element.ElementFilter;
 import io.github.potjerodekool.codegen.model.element.Name;
+import io.github.potjerodekool.codegen.model.element.java.ElementFilter;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
-import io.github.potjerodekool.codegen.model.util.Elements;
 import io.github.potjerodekool.codegen.model.util.SymbolTable;
 
 public abstract class AbstractTypeElementLoader implements TypeElementLoader {
@@ -50,8 +49,10 @@ public abstract class AbstractTypeElementLoader implements TypeElementLoader {
         return null;
     }
 
+    protected abstract ClassSymbol doLoadTypeElement(final String name);
+
     private ClassSymbol findClass(final String internalName) {
-        return symbolTable.findClass(Name.of(internalName));
+        return symbolTable.getClass(null, Name.of(internalName));
     }
 
     protected String toInternalName(final String name) {

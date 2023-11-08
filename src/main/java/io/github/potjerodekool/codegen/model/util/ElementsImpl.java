@@ -2,6 +2,8 @@ package io.github.potjerodekool.codegen.model.util;
 
 import io.github.potjerodekool.codegen.loader.TypeElementLoader;
 import io.github.potjerodekool.codegen.model.element.*;
+import io.github.potjerodekool.codegen.model.element.java.ElementFilter;
+import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
 import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 
@@ -10,24 +12,77 @@ import java.util.*;
 
 public class ElementsImpl implements Elements {
 
-    private final TypeElementLoader typeElementLoader;
+    private TypeElementLoader typeElementLoader;
 
     private final SymbolTable symbolTable;
 
-    public ElementsImpl(final TypeElementLoader typeElementLoader,
-                        final SymbolTable symbolTable) {
-        this.typeElementLoader = typeElementLoader;
+    public ElementsImpl(final SymbolTable symbolTable) {
         this.symbolTable = symbolTable;
+    }
+
+    public void setTypeElementLoader(final TypeElementLoader typeElementLoader) {
+        this.typeElementLoader = typeElementLoader;
     }
 
     @Override
     public PackageElement getPackageElement(final CharSequence name) {
-        return symbolTable.findPackage(Name.of(name));
+        return symbolTable.getPackage(null, Name.of(name));
     }
 
     @Override
-    public TypeElement getTypeElement(final CharSequence name) {
-        var typeElement = symbolTable.findClass(Name.of(name));
+    public TypeElement getTypeElement(final ModuleElement module, final CharSequence name) {
+        TypeElement typeElement = doGetTypeElement(name);
+
+        if (typeElement != null) {
+            return typeElement;
+        }
+
+        final var fullName = name.toString();
+
+        var fromIndex = fullName.length() - 1;
+        var index = fullName.lastIndexOf('.', fromIndex);
+
+        if (index < 0) {
+            return null;
+        }
+
+        fromIndex = index;
+        String parentName;
+
+        do {
+            index = fullName.lastIndexOf('.', fromIndex - 1);
+            parentName = fullName.substring(0, fromIndex);
+            typeElement = doGetTypeElement(parentName);
+
+            fromIndex = index;
+        } while (typeElement == null && fromIndex > 0);
+
+        if (typeElement == null) {
+            return null;
+        }
+
+        final var childString = fullName.substring(fromIndex + 1);
+        final var childNames = childString.split("\\.");
+
+        for (int childIndex = 1; childIndex < childNames.length; childIndex++) {
+            final var childName = childNames[childIndex];
+            final var types = ElementFilter.typesIn(typeElement.getEnclosedElements());
+            final var childOptional = types.stream()
+                    .filter(it -> it.getSimpleName().contentEquals(childName))
+                    .findFirst();
+
+            if (childOptional.isEmpty()) {
+                return null;
+            } else {
+                typeElement = childOptional.get();
+            }
+        }
+
+        return typeElement;
+    }
+
+    private TypeElement doGetTypeElement(final CharSequence name) {
+        var typeElement = symbolTable.getClass(null, Name.of(name));
 
         if (typeElement == null) {
             typeElement = typeElementLoader.loadTypeElement(name.toString());
@@ -51,8 +106,36 @@ public class ElementsImpl implements Elements {
     }
 
     @Override
-    public Name getBinaryName(final TypeElement type) {
-        return symbolTable.getBinaryName(type);
+    public Name getBinaryName(final TypeElement typeElement) {
+        final var binaryNameBuilder = new StringBuilder();
+        resolveBinaryName(typeElement, binaryNameBuilder);
+        return Name.of(binaryNameBuilder.toString());
+    }
+
+    private void resolveBinaryName(final Element element,
+                                  final StringBuilder binaryNameBuilder) {
+        final var enclosingElement = element.getEnclosingElement();
+
+        if (enclosingElement != null && !isDefaultPackage(enclosingElement)) {
+            resolveBinaryName(enclosingElement, binaryNameBuilder);
+
+            if (element instanceof TypeElement typeElement && typeElement.getNestingKind() == NestingKind.MEMBER) {
+                binaryNameBuilder.append("$");
+            } else {
+                binaryNameBuilder.append("/");
+            }
+        }
+
+        if (element instanceof PackageSymbol packageSymbol) {
+            binaryNameBuilder.append(packageSymbol.getQualifiedName().toString().replace('.', '/'));
+        } else {
+            binaryNameBuilder.append(element.getSimpleName());
+        }
+    }
+
+    private boolean isDefaultPackage(final Element element) {
+        return element instanceof PackageElement packageElement
+                && packageElement.isUnnamed();
     }
 
     @Override

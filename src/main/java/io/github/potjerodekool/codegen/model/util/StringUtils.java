@@ -8,7 +8,7 @@ public final class StringUtils {
     }
 
     public static boolean hasLength(final String value) {
-        return value != null && value.length() > 0;
+        return value != null && !value.isEmpty();
     }
 
     public static String firstUpper(final String value) {
@@ -21,7 +21,7 @@ public final class StringUtils {
 
     private static String replaceFirst(final String value,
                                        final Function<Character, Character> replaceFunction) {
-        if (value.length() < 1) {
+        if (value.isEmpty()) {
             return value;
         } else {
             final var first = replaceFunction.apply(value.charAt(0));

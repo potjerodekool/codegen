@@ -1,37 +1,43 @@
 package io.github.potjerodekool.codegen.model.symbol;
 
 import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.type.PackageType;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import io.github.potjerodekool.codegen.resolve.Scope;
+import io.github.potjerodekool.codegen.resolve.WritableScope;
 
 import java.util.List;
+import java.util.Set;
 
-public class PackageSymbol extends TypeSymbol<PackageSymbol> implements PackageElement {
+public class PackageSymbol extends TypeSymbol implements PackageElement {
 
-    public static final PackageSymbol DEFAULT_PACKAGE = new PackageSymbol(Name.EMPTY);
+    public WritableScope scope;
 
-    private PackageSymbol(final Name name) {
+    public ModuleSymbol module;
+
+    public PackageSymbol(final Name name,
+                         final PackageSymbol enclosingPackage) {
         super(ElementKind.PACKAGE, name, List.of());
-    }
-
-    public static PackageSymbol create(final @Nullable Name name) {
-        if (name == null || name.isEmpty()) {
-            return DEFAULT_PACKAGE;
-        }
-
-        final var pe = new PackageSymbol(name);
-        final var type = new PackageType(pe);
-        pe.setType(type);
-        return pe;
+        setEnclosingElement(enclosingPackage);
     }
 
     @Override
-    protected void validateSimpleName(final Name simpleName) {
+    public ElementKind getKind() {
+        return ElementKind.PACKAGE;
+    }
+
+    @Override
+    protected void validateSimpleName(final CharSequence simpleName) {
     }
 
     @Override
     public Name getQualifiedName() {
-        return getSimpleName();
+        final var enclosing = (PackageSymbol) getEnclosingElement();
+
+        if (enclosing == null) {
+            return getSimpleName();
+        } else {
+            final var enclosingName = enclosing.getQualifiedName();
+            return enclosingName.append(getSimpleName());
+        }
     }
 
     @Override
@@ -40,11 +46,22 @@ public class PackageSymbol extends TypeSymbol<PackageSymbol> implements PackageE
     }
 
     public boolean isDefaultPackage() {
-        return this == DEFAULT_PACKAGE;
+        return getEnclosingElement() != null
+                && getSimpleName().contentEquals("");
     }
 
     @Override
     public boolean isUnnamed() {
-        return this == DEFAULT_PACKAGE;
+        return isDefaultPackage();
+    }
+
+    @Override
+    public Set<? extends Modifier> getModifiers() {
+        return Set.of();
+    }
+
+    @Override
+    public WritableScope members() {
+        return scope;
     }
 }

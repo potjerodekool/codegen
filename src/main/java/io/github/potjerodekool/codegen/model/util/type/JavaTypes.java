@@ -1,11 +1,14 @@
 package io.github.potjerodekool.codegen.model.util.type;
 
-import io.github.potjerodekool.codegen.loader.TypeElementLoader;
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.type.*;
-import io.github.potjerodekool.codegen.model.type.java.*;
+import io.github.potjerodekool.codegen.model.type.immutable.*;
+import io.github.potjerodekool.codegen.model.type.java.immutable.JavaArrayTypeImpl;
+import io.github.potjerodekool.codegen.model.type.java.immutable.JavaNoneType;
+import io.github.potjerodekool.codegen.model.type.java.immutable.JavaVoidType;
 import io.github.potjerodekool.codegen.model.util.Elements;
+import io.github.potjerodekool.codegen.model.util.SymbolTable;
 import io.github.potjerodekool.codegen.model.util.type.check.*;
 
 import java.util.*;
@@ -44,10 +47,10 @@ public class JavaTypes implements Types {
     private final Map<TypeKind, String> boxMapping = new HashMap<>();
     private final Map<String, TypeKind> unBoxMapping = new HashMap<>();
 
-    private final TypeElementLoader typeElementLoader;
+    private final SymbolTable symbolTable;
 
-    public JavaTypes(final TypeElementLoader typeElementLoader) {
-        this.typeElementLoader = typeElementLoader;
+    public JavaTypes(final SymbolTable symbolTable) {
+        this.symbolTable = symbolTable;
         initBoxingMappings();
         initVisitors();
     }
@@ -160,19 +163,23 @@ public class JavaTypes implements Types {
 
             directSuperTypes.addAll(interfaces);
 
-            if (element.getKind() == ElementKind.INTERFACE && directSuperTypes.isEmpty()) {
+            /*
+            if (element.getKind() == JavaElementKind.INTERFACE && directSuperTypes.isEmpty()) {
                 directSuperTypes.add(getObjectType());
             }
+            */
 
             return directSuperTypes;
         }
         return List.of();
     }
 
+    /*
     private TypeMirror getObjectType() {
         final var element = typeElementLoader.loadTypeElement("java.lang.Object");
         return element.asType();
     }
+    */
 
     @Override
     public TypeMirror erasure(final TypeMirror t) {
@@ -184,7 +191,7 @@ public class JavaTypes implements Types {
     public TypeElement boxedClass(final PrimitiveType p) {
         final var typeKind = p.getKind();
         final var className = boxMapping.get(typeKind);
-        return typeElementLoader.loadTypeElement(className);
+        return symbolTable.getClass(null, Name.of(className));
     }
 
     @Override
@@ -289,12 +296,13 @@ public class JavaTypes implements Types {
 
     private void validateTypeArgsCount(final TypeElement typeElement,
                                        final TypeMirror... typeArgs) {
+        /*
         final var typeParameterCount = typeElement.getTypeParameters().size();
 
         if (typeArgs.length != typeParameterCount) {
-            throw new IllegalArgumentException(
-                    String.format("Expected %s type arguments but got %s", typeParameterCount, typeArgs.length));
+            throw new InvalidTypeArgumentsCountException(typeParameterCount, typeArgs.length);
         }
+        */
     }
 
     @Override

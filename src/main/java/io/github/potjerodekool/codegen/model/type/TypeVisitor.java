@@ -1,5 +1,7 @@
 package io.github.potjerodekool.codegen.model.type;
 
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
+
 public interface TypeVisitor<R, P> {
 
     R visit(TypeMirror t, P param);
@@ -32,5 +34,5 @@ public interface TypeVisitor<R, P> {
 
     R visitIntersection(IntersectionType t, P param);
 
-    R visitVarType(VarTypeImpl varType, P p);
+    R visitVarType(VarType varType, P p);
 }

@@ -1,31 +1,39 @@
 package io.github.potjerodekool.codegen.kotlin;
 
 import io.github.potjerodekool.codegen.*;
+import io.github.potjerodekool.codegen.extension.buildin.BuildInDefaultValueResolver;
 import io.github.potjerodekool.codegen.model.Attribute;
 import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
+import io.github.potjerodekool.codegen.model.symbol.AbstractSymbol;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
-import io.github.potjerodekool.codegen.model.symbol.VariableSymbol;
-import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
+import io.github.potjerodekool.codegen.model.symbol.kotlin.KClassSymbolBuilder;
+import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
-import io.github.potjerodekool.codegen.model.tree.type.AnnotatedTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.type.PrimitiveTypeExpression;
+import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.kotlin.KAnnotationExpression;
+import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
 import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.type.kotlin.UnitType;
 import io.github.potjerodekool.codegen.model.util.Elements;
-import io.github.potjerodekool.codegen.model.util.StringUtils;
 import io.github.potjerodekool.codegen.model.util.type.Types;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
-        TreeVisitor<Object, CodeContext>,
+import static io.github.potjerodekool.codegen.model.util.StringUtils.firstUpper;
+
+public class JavaToKotlinConverter implements
+        JTreeVisitor<Object, CodeContext>,
         TypeVisitor<TypeMirror, CodeContext>,
         AnnotationValueVisitor<Object, CodeContext> {
 
@@ -46,6 +54,7 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
 
     private final Elements elements;
     private final Types types;
+    private final BuildInDefaultValueResolver defaultValueResolver = new BuildInDefaultValueResolver();
 
     public JavaToKotlinConverter(final Elements elements,
                                  final Types types) {
@@ -58,162 +67,215 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
             return compilationUnit;
         }
         final var newCompilationUnit = new CompilationUnit(Language.KOTLIN);
-        newCompilationUnit.setPackageElement(compilationUnit.getPackageElement());
+        final var packageDeclaration = compilationUnit.getPackageDeclaration();
+
+        if (packageDeclaration != null) {
+            newCompilationUnit.add(packageDeclaration);
+        }
 
         final var codeContext = new CodeContext(newCompilationUnit);
 
-        compilationUnit.getElements()
-                        .forEach(element -> element.accept(this, codeContext));
+        final var definitions = compilationUnit.getDefinitions().stream()
+                .filter(definition -> !(definition instanceof PackageDeclaration))
+                        .toList();
+        definitions.forEach(compilationUnit::remove);
+
+        final var newDefinitions = definitions.stream()
+                .map(definition -> (Tree) definition.accept(this, codeContext))
+                .toList();
+
+        newDefinitions.forEach(newCompilationUnit::add);
+
         return newCompilationUnit;
+    }
+
+    @Override
+    public Object visitPackageDeclaration(final PackageDeclaration packageDeclaration, final CodeContext param) {
+        return packageDeclaration;
     }
 
     //Elements
 
     @Override
-    public Void visitPackage(final PackageElement packageElement, final CodeContext context) {
-        return null;
-    }
+    public Object visitMethodDeclaration(final JMethodDeclaration methodDeclaration,
+                                         final CodeContext context) {
+        final var childContext = context.child(methodDeclaration);
 
-    @Override
-    public Void visitType(final TypeElement typeElement, final CodeContext context) {
-        if (isUtilityClass(typeElement)) {
-            typeElement.getEnclosedElements().stream()
-                    .filter(element -> element.getKind() != ElementKind.CONSTRUCTOR)
-                    .forEach(element -> element.accept(this, context));
-        } else {
-            final var parentAstNode = context.getAstNode();
-            final var classSymbol = (ClassSymbol) typeElement;
+        final var newParameters = methodDeclaration.getParameters().stream()
+                .map(it -> (KVariableDeclaration) it.accept(this, context))
+                .toList();
 
-            final var childContext = context.child(classSymbol);
+        newParameters.forEach(parameter -> {
+            parameter.removeModifier(Modifier.VAL);
+            parameter.removeModifier(Modifier.VAR);
+        });
 
-            classSymbol.removeModifier(Modifier.PUBLIC);
-            final var primaryConstructor = convertFirstConstructorToPrimaryConstructor(classSymbol, childContext);
 
-            final var enclosedElements = typeElement.getEnclosedElements().stream().toList();
-            enclosedElements.forEach(enclosedElement -> enclosedElement.accept(this, childContext));
-            removeFieldsWithGetterAndSetters(classSymbol, primaryConstructor);
+        final var newMethod = new KMethodDeclaration(
+                methodDeclaration.getSimpleName(),
+                methodDeclaration.getKind(),
+                (Expression) methodDeclaration.getReturnType().accept(this, context),
+                methodDeclaration.getTypeParameters(),
+                newParameters,
+                methodDeclaration.getBody().orElse(null));
 
-            if (parentAstNode instanceof CompilationUnit cu) {
-                cu.addElement(typeElement);
-            }
-        }
-        return null;
-    }
+        final var newAnnotations = methodDeclaration.getAnnotations().stream()
+                .map(annotationExpression -> (AnnotationExpression) annotationExpression.accept(this, context))
+                .toList();
+        newAnnotations.forEach(newMethod::annotation);
 
-    @Override
-    public Void visitExecutable(final ExecutableElement methodElement,
-                                final CodeContext context) {
-        final var parentAstNode = context.getAstNode();
-
-        final var newMethod = methodElement.getKind() == ElementKind.METHOD
-                ? MethodSymbol.createMethod(methodElement.getSimpleName(), methodElement.getReturnType().accept(this, context))
-                : MethodSymbol.createConstructor(methodElement.getSimpleName());
-
-        final var childContext = context.child(newMethod);
-
-        methodElement.getParameters()
-                .forEach(parameter -> parameter.accept(this, childContext));
-
-        ((MethodSymbol)methodElement).getBody().ifPresent(body -> {
+        methodDeclaration.getBody().ifPresent(body -> {
             final var newBody = (BlockStatement) body.accept(this, childContext);
             newMethod.setBody(newBody);
         });
 
-        newMethod.addModifiers(convertModifiers(methodElement.getModifiers(),
+        newMethod.addModifiers(convertModifiers(methodDeclaration.getModifiers(),
                 it -> !(it == Modifier.DEFAULT || it == Modifier.STATIC)));
 
-        if (parentAstNode instanceof ClassSymbol te) {
-            te.removeEnclosedElement(methodElement);
-            te.addEnclosedElement(newMethod);
-        } else if (parentAstNode instanceof CompilationUnit cu) {
-            cu.removeElement(methodElement);
-            cu.addElement(newMethod);
+
+        final var overrideAnnotation = newMethod.getAnnotation("java.lang.Override");
+
+        if (overrideAnnotation != null) {
+            newMethod.removeAnnotation(overrideAnnotation);
+            newMethod.addModifiers(Modifier.OVERRIDE);
         }
 
-        return null;
+        if (methodDeclaration.getModifiers().contains(Modifier.STATIC)) {
+            newMethod.annotation("kotlin.jvm.JvmStatic");
+        }
+
+        return newMethod;
     }
 
-    @Override
-    public Void visitVariable(final VariableElement variableElement,
-                              final CodeContext context) {
-        final VariableSymbol newVariableElement;
-
-        if (variableElement.getKind() == ElementKind.PARAMETER) {
-            newVariableElement = VariableSymbol.createParameter(
-                    variableElement.getSimpleName().toString(),
-                    variableElement.asType().accept(this, context)
-            );
-        } else if (variableElement.getKind() == ElementKind.FIELD) {
-            newVariableElement = VariableSymbol.createField(
-                    variableElement.getSimpleName().toString(),
-                    variableElement.asType().accept(this, context)
-            );
-        } else {
-            throw new UnsupportedOperationException();
-        }
-
-        if (newVariableElement.getKind() == ElementKind.PARAMETER) {
-            final var method = (MethodSymbol) context.getAstNode();
-            method.addParameter(newVariableElement);
-        } else if (newVariableElement.getKind() == ElementKind.FIELD) {
-            final var clazz = (ClassSymbol) context.getAstNode();
-            clazz.removeEnclosedElement(variableElement);
-            clazz.addEnclosedElement(newVariableElement);
-        }
-
-        return null;
-    }
-
-    private boolean isUtilityClass(final TypeElement typeElement) {
-        return typeElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() != ElementKind.CONSTRUCTOR)
+    private boolean isUtilityClass(final JClassDeclaration classDeclaration) {
+        return classDeclaration.getEnclosed().stream()
+                .filter(element -> !isElementOfKind(element, ElementKind.CONSTRUCTOR))
                 .allMatch(element ->
-                        element.getKind() == ElementKind.METHOD
-                        && ((MethodSymbol)element).hasModifier(Modifier.STATIC)
+                        isElementOfKind(element, ElementKind.METHOD)
+                        && ((JMethodDeclaration) element).hasModifier(Modifier.STATIC)
                 );
     }
 
-    private @Nullable MethodSymbol convertFirstConstructorToPrimaryConstructor(final ClassSymbol typeElement,
-                                                                               final CodeContext context) {
-        final var firstConstructor = removeConstructors(typeElement);
-
-        final var fields = ElementFilter.fields(typeElement).toList();
-
-        if (typeElement.getKind() != ElementKind.INTERFACE) {
-            final var primaryConstructor = typeElement.addPrimaryConstructor();
-
-            fields.forEach(field -> primaryConstructor.addParameter(createParameter(field, context)));
-
-            primaryConstructor.addAnnotation((ClassSymbol) elements.getTypeElement("kotlin.jvm.JvmOverloads"));
-        }
-
-        return firstConstructor;
+    private boolean isElementOfKind(final Tree tree,
+                                    final ElementKind kind) {
+        return tree instanceof JElementTree elementTree
+                && elementTree.getKind() == kind;
     }
 
-    private VariableSymbol createParameter(final VariableSymbol field,
-                                           final CodeContext context) {
-        final var paramType = (TypeMirror) field.asType().accept(this, context);
+    private void conditionalAddPrimaryConstructor(final KClassDeclaration kClassDeclaration) {
+        if (kClassDeclaration.getKind() != ElementKind.CLASS) {
+            return;
+        }
 
-        final var fieldModifiers = field.getModifiers();
+        final var constructors = KTreeFilter.constructors(kClassDeclaration);
 
-        final VariableSymbol parameter = VariableSymbol.createParameter(
-                field.getSimpleName().toString(),
-                paramType
+        if (constructors.isEmpty()) {
+            return;
+        }
+
+        KMethodDeclaration resolvedConstructor = null;
+
+        for (final var constructor : constructors) {
+            if (resolvedConstructor == null) {
+                resolvedConstructor = constructor;
+            } else if (constructor.getParameters().size() > resolvedConstructor.getParameters().size()) {
+                resolvedConstructor = constructor;
+            }
+        }
+
+        if (resolvedConstructor.getParameters().isEmpty()) {
+            return;
+        }
+
+        kClassDeclaration.removeEnclosed(resolvedConstructor);
+        kClassDeclaration.setPrimaryConstructor(resolvedConstructor);
+
+        if (addJvmOverloads(resolvedConstructor)) {
+            resolvedConstructor.annotation("kotlin.jvm.JvmOverloads");
+        }
+
+        final var parameterNames = resolvedConstructor.getParameters().stream()
+                .map(VariableDeclaration::getName)
+                .toList();
+
+        final var fieldsToRemove = KTreeFilter.fields(kClassDeclaration).stream()
+                .filter(field -> parameterNames.contains(field.getName()))
+                .toList();
+
+        fieldsToRemove.forEach(kClassDeclaration::removeEnclosed);
+    }
+
+    private void removeGetters(final KClassDeclaration classDeclaration) {
+        final var getterNames = new ArrayList<String>();
+
+        final var primaryConstructor = classDeclaration.getPrimaryConstructor();
+
+        if (primaryConstructor != null) {
+            getterNames.addAll(primaryConstructor.getParameters().stream()
+                    .map(parameter -> "get" + firstUpper(parameter.getName()))
+                    .toList());
+        }
+
+        getterNames.addAll(KTreeFilter.fields(classDeclaration).stream()
+                .map(field -> "get" + firstUpper(field.getName()))
+                .toList()
         );
 
-        /*TODO
-        if (paramType.isNullable()) {
-            parameter.setInitExpression(LiteralExpression.createNullLiteralExpression());
-        } else {
-            parameter.setInitExpression(defaultValueResolver.createDefaultValue(paramType));
+        final var gettersToRemove = KTreeFilter.methods(classDeclaration).stream()
+                .filter(methodDeclaration -> getterNames.contains(methodDeclaration.getSimpleName().toString()))
+                .toList();
+
+        gettersToRemove.forEach(classDeclaration::removeEnclosed);
+    }
+
+    private void removeSetters(final KClassDeclaration classDeclaration) {
+        KTreeFilter.methods(classDeclaration).stream()
+                .filter(this::isSetter)
+                .forEach(classDeclaration::removeEnclosed);
+    }
+
+    private boolean isSetter(final KMethodDeclaration methodDeclaration) {
+        if (methodDeclaration.getParameters().size() != 1) {
+            return false;
         }
-        */
 
-        convertModifiers(
-                fieldModifiers,
-                modifier -> modifier != Modifier.PRIVATE
-        ).forEach(parameter::addModifier);
+        final var methodName = methodDeclaration.getSimpleName().toString();
 
+        return methodName.startsWith("set")
+                && methodName.length() >= 4;
+    }
+
+    private boolean addJvmOverloads(final KMethodDeclaration primaryConstructor) {
+        return !primaryConstructor.getParameters().isEmpty()
+                && primaryConstructor.getParameters().stream()
+                .allMatch(it -> it.getInitExpression().isPresent());
+    }
+
+    private KVariableDeclaration createParameter(final KVariableDeclaration field,
+                                                 final CodeContext context) {
+        final var initExpression = field.getInitExpression()
+                .orElseGet(() -> field.getVarType().getType().isNullable()
+                        ? LiteralExpression.createNullLiteralExpression()
+                        : defaultValueResolver.createDefaultValue(field.getVarType().getType()));
+
+        final Set<Modifier> modifiers = field.getModifiers();
+
+        final var annotations = field.getAnnotations().stream()
+                .map(annotationExpression -> toFieldAnnotation(annotationExpression, context))
+                .toList();
+
+        final var parameter = new KVariableDeclaration(
+                ElementKind.PARAMETER,
+                modifiers,
+                field.getVarType(),
+                field.getName(),
+                initExpression,
+                null
+        );
+
+        annotations.forEach(parameter::annotation);
+
+        parameter.setSymbol(field.getSymbol());
         return parameter;
     }
 
@@ -222,109 +284,23 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
         return modifiers.stream()
                 .filter(filter)
                 .filter(modifier -> modifier != Modifier.PUBLIC)
+                .map(Modifier::toKotlinModifier)
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    private AnnotationMirror toFieldAnnotation(final AnnotationMirror annotation,
-                                               final CodeContext context) {
-        final var elementValues = annotation.getElementValues().entrySet().stream()
+    private AnnotationExpression toFieldAnnotation(final AnnotationExpression annotationExpression,
+                                                   final CodeContext context) {
+        final var arguments = annotationExpression.getArguments().entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        it -> (AnnotationValue) it.getValue().accept(this, context)
+                        it -> (Expression) it.getValue().accept(this, context)
                 ));
 
-        return Attribute.compound(
-                (ClassSymbol) annotation.getAnnotationType().asElement(),
-                elementValues,
-                AnnotationTarget.FIELD
+        return new KAnnotationExpression(
+                KAnnotationExpression.Target.FIELD,
+                annotationExpression.getAnnotationType(),
+                arguments
         );
-    }
-
-    private @Nullable MethodSymbol removeConstructors(final ClassSymbol typeElement) {
-        final var constructors = ElementFilter.constructors(typeElement)
-                .toList();
-
-        if (constructors.isEmpty()) {
-            return null;
-        }
-
-        final var firstConstructor = constructors.get(0);
-
-        constructors.forEach(constructor -> {
-            typeElement.removeEnclosedElement(constructor);
-            constructor.setBody(null);
-        });
-
-        return firstConstructor;
-    }
-
-    private void removeFieldsWithGetterAndSetters(final ClassSymbol typeElement,
-                                                  final @Nullable MethodSymbol primaryConstructor) {
-        if (primaryConstructor == null) {
-            return;
-        }
-
-        final var fields = ElementFilter.fields(typeElement).toList();
-        removeGetterAndSetters(typeElement, fields);
-        fields.forEach(typeElement::removeEnclosedElement);
-    }
-
-    private void removeGetterAndSetters(final ClassSymbol typeElement,
-                                        final List<VariableSymbol> fields) {
-
-        final var fieldMap = fields.stream()
-                .collect(Collectors.toMap(
-                        it -> it.getSimpleName().toString(),
-                        Function.identity()
-                ));
-
-        final var getterNames = new ArrayList<String>();
-        final var setterNames = new ArrayList<String>();
-
-        fields.forEach(field -> {
-            getterNames.add("get" + StringUtils.firstUpper(field.getSimpleName().toString()));
-            getterNames.add(field.getSimpleName().toString());
-        });
-
-        fields.forEach(field -> {
-            setterNames.add("set" + StringUtils.firstUpper(field.getSimpleName().toString()));
-            setterNames.add(field.getSimpleName().toString());
-        });
-
-        var methods = ElementFilter.methods(typeElement).toList();
-
-        methods.stream().filter(this::isGetter)
-                .filter(getter -> getterNames.contains(getter.getSimpleName().toString()))
-                .filter(getter -> {
-                    final String getterName = getter.getSimpleName().toString();
-                    final String fieldName = StringUtils.firstLower(getterName.startsWith("get") ? getterName.substring(3) : getterName);
-                    final var field = fieldMap.get(fieldName);
-                    return field != null && types.isSameType(getter.getReturnType(), field.asType());
-                }).forEach(typeElement::removeEnclosedElement);
-
-        methods.stream().filter(this::isSetter)
-                .filter(setter -> setterNames.contains(setter.getSimpleName().toString()))
-                .filter(setter -> {
-                    final String setterName = setter.getSimpleName().toString();
-                    final var isNormalSetter = setterName.startsWith("set");
-                    final String fieldName = StringUtils.firstLower(isNormalSetter ? setterName.substring(3) : setterName);
-                    final var field = fieldMap.get(fieldName);
-                    return field != null && types.isSameType(setter.getParameters().get(0).asType(), field.asType()) && isNormalSetter;
-                }).forEach(typeElement::removeEnclosedElement);
-    }
-
-    private boolean isGetter(final MethodSymbol method) {
-        final var returnType = method.getReturnType();
-
-        if (returnType.getKind() == TypeKind.VOID) {
-            return false;
-        }
-
-        return method.getParameters().isEmpty();
-    }
-
-    private boolean isSetter(final MethodSymbol method) {
-        return method.getParameters().size() == 1;
     }
 
     //Statements
@@ -399,7 +375,7 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
             return Optional.empty();
         }
 
-        if (target instanceof NameExpression targetName) {
+        if (target instanceof IdentifierExpression targetName) {
            final var name = targetName.getName();
            final var targetTypeOptional = context.resolveLocalVariable(name);
 
@@ -444,22 +420,35 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
         return Optional.empty();
     }
 
-
     @Override
-    public Statement visitVariableDeclaration(final VariableDeclaration variableDeclaration, final CodeContext context) {
-        final var initExpression = variableDeclaration.getInitExpression()
+    public Statement visitVariableDeclaration(final JVariableDeclaration variableDeclaration, final CodeContext context) {
+        final var kind = variableDeclaration.getKind();
+
+        var initExpression = variableDeclaration.getInitExpression()
                 .map(it -> (Expression) it.accept(this, context))
                 .orElse(null);
 
         final var modifiers = variableDeclaration.getModifiers();
-        final var newModifiers = convertModifiers(modifiers, it -> it != Modifier.FINAL);
+        final Set<Modifier> newModifiers = new HashSet<>(convertModifiers(modifiers, modifier ->
+                modifier != Modifier.PRIVATE
+        ));
+
+        if (kind == ElementKind.PARAMETER) {
+            newModifiers.remove(Modifier.VAL);
+        } else if (!newModifiers.contains(Modifier.VAL)) {
+            newModifiers.add(Modifier.VAR);
+        }
 
         final var localVariableName = variableDeclaration.getName();
-        final var newLocalVariableType = (Expression) variableDeclaration.getType().accept(this, context);
+        final var newLocalVariableType = (Expression) variableDeclaration.getVarType().accept(this, context);
 
-        context.defineLocalVariable((TypeMirror) newLocalVariableType, localVariableName);
+        context.defineLocalVariable(newLocalVariableType.getType(), localVariableName);
 
-        return new VariableDeclaration(
+        if (initExpression == null && variableDeclaration.getKind() == ElementKind.FIELD) {
+            initExpression = defaultValueResolver.createDefaultValue(newLocalVariableType.getType());
+        }
+
+        final var newVarDeclaration = new KVariableDeclaration(
                 variableDeclaration.getKind(),
                 newModifiers,
                 newLocalVariableType,
@@ -467,7 +456,43 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
                 initExpression,
                 variableDeclaration.getSymbol()
         );
+
+        newVarDeclaration.setSymbol(variableDeclaration.getSymbol());
+        return newVarDeclaration;
     }
+
+    /*
+    @Override
+    public Void visitVariable(final VariableElement variableElement,
+                              final CodeContext context) {
+        final VariableSymbol newVariableElement;
+
+        if (variableElement.getKind() == ElementKind.PARAMETER) {
+            newVariableElement = VariableSymbol.createParameter(
+                    variableElement.getSimpleName().toString(),
+                    variableElement.asType().accept(this, context)
+            );
+        } else if (variableElement.getKind() == ElementKind.FIELD) {
+            newVariableElement = VariableSymbol.createField(
+                    variableElement.getSimpleName().toString(),
+                    variableElement.asType().accept(this, context)
+            );
+        } else {
+            throw new UnsupportedOperationException();
+        }
+
+        if (newVariableElement.getKind() == ElementKind.PARAMETER) {
+            final var method = (MethodSymbol) context.getAstNode();
+            method.addParameter(newVariableElement);
+        } else if (newVariableElement.getKind() == ElementKind.FIELD) {
+            final var clazz = (ClassSymbol) context.getAstNode();
+            clazz.removeEnclosedElement(variableElement);
+            clazz.addEnclosedElement(newVariableElement);
+        }
+
+        return null;
+    }
+    */
 
     @Override
     public Expression visitNamedMethodArgumentExpression(final NamedMethodArgumentExpression namedMethodArgumentExpression, final CodeContext context) {
@@ -475,8 +500,8 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
     }
 
     @Override
-    public Expression visitNameExpression(final NameExpression nameExpression, final CodeContext context) {
-        return nameExpression;
+    public Expression visitIdentifierExpression(final IdentifierExpression identifierExpression, final CodeContext context) {
+        return identifierExpression;
     }
 
     @Override
@@ -540,13 +565,24 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
 
     @Override
     public Expression visitNewClassExpression(final NewClassExpression newClassExpression, final CodeContext context) {
-        final var newClassType = (DeclaredType) newClassExpression.getClassType().accept(this, context);
-        return new NewClassExpression(newClassType);
+        final var newClassType = (ClassOrInterfaceTypeExpression) newClassExpression.getClazz().accept(this, context);
+        final var newArgs = newClassExpression.getArguments().stream()
+                .map(arg -> (Expression) arg.accept(this, context))
+                .toList();
+        return new NewClassExpression(newClassType, newArgs);
     }
 
     @Override
-    public Expression visitAnnotatedType(final AnnotatedTypeExpression annotatedTypeExpression, final CodeContext param) {
-        throw new UnsupportedOperationException();
+    public Expression visitAnnotatedType(final AnnotatedTypeExpression annotatedTypeExpression, final CodeContext context) {
+        final var identifier = (Expression) annotatedTypeExpression.getIdentifier().accept(this, context);
+        final var annotations = annotatedTypeExpression.getAnnotations().stream()
+                .map(annotation -> (AnnotationExpression) annotation.accept(this, context))
+                .toList();
+
+        final var newAnnotatedTypeExpression = new AnnotatedTypeExpression(identifier, annotations);
+        newAnnotatedTypeExpression.setType(annotatedTypeExpression.getType());
+
+        return newAnnotatedTypeExpression;
     }
 
     //Types
@@ -554,6 +590,48 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
     public TypeMirror visitUnknown(final TypeMirror type,
                                    final CodeContext context) {
         return type;
+    }
+
+    @Override
+    public Object visitClassOrInterfaceTypeExpression(final ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression,
+                                                      final CodeContext context) {
+        final var qualifiedName = classOrInterfaceTypeExpression.getName();
+        final var kotlinTypeName = JAVA_TO_KOTLIN_TYPE.get(qualifiedName.toString());
+        final var isNullable = classOrInterfaceTypeExpression.getType().isNullable();
+
+        ClassOrInterfaceTypeExpression convertedTypeExpression;
+
+        final var typeArgs = classOrInterfaceTypeExpression.getTypeArguments().stream()
+                .map(typeArg -> (TypeExpression) typeArg.accept(this, context))
+                .toList();
+
+        final var typeArgTypes = typeArgs.stream()
+                .map(Tree::getType)
+                .toArray(TypeMirror[]::new);
+
+        if (kotlinTypeName != null) {
+            convertedTypeExpression = new ClassOrInterfaceTypeExpression(kotlinTypeName);
+            var declaredType = types.getDeclaredType(elements.getTypeElement(kotlinTypeName), typeArgTypes);
+            declaredType = isNullable ? declaredType.asNullableType() : declaredType.asNonNullableType();
+            convertedTypeExpression.setType(declaredType);
+        } else {
+            final var oldType = (ClassType) classOrInterfaceTypeExpression.getType();
+
+            convertedTypeExpression = new ClassOrInterfaceTypeExpression(classOrInterfaceTypeExpression.getName());
+
+            var newType = types.getDeclaredType(
+                    oldType.asElement(),
+                    typeArgTypes
+            );
+            newType = isNullable ? newType.asNullableType() : newType.asNonNullableType();
+            convertedTypeExpression.setType(newType);
+        }
+
+        typeArgs.forEach(convertedTypeExpression::addTypeArgument);
+
+        convertedTypeExpression.setNullable(isNullable);
+
+        return convertedTypeExpression;
     }
 
     @Override
@@ -575,6 +653,8 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
 
         if (declaredType.isNullable()) {
             convertedType = convertedType.asNullableType();
+        } else {
+            convertedType = convertedType.asNonNullableType();
         }
 
         return convertedType;
@@ -712,21 +792,6 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
     }
 
     @Override
-    public Void visit(final Element e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visitTypeParameter(final TypeParameterElement e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Void visitUnknown(final Element e, final CodeContext codeContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public TypeMirror visit(final TypeMirror t, final CodeContext codeContext) {
         throw new UnsupportedOperationException();
     }
@@ -769,17 +834,157 @@ public class JavaToKotlinConverter implements ElementVisitor<Void, CodeContext>,
     }
 
     @Override
-    public TypeMirror visitVarType(final VarTypeImpl varType, final CodeContext codeContext) {
+    public TypeMirror visitVarType(final VarType varType, final CodeContext codeContext) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Statement visitClassDeclaration(final ClassDeclaration classDeclaration, final CodeContext param) {
-        throw new UnsupportedOperationException();
+    public Statement visitClassDeclaration(final JClassDeclaration classDeclaration,
+                                           final CodeContext context) {
+        KClassDeclaration kClassDeclaration;
+
+        if (isUtilityClass(classDeclaration)) {
+            final var modifiers = classDeclaration.getModifiers().stream()
+                    .filter(modifier -> modifier != Modifier.FINAL)
+                    .map(Modifier::toKotlinModifier)
+                    .collect(Collectors.toSet());
+
+            kClassDeclaration = new KClassDeclaration(
+                    classDeclaration.getSimpleName(),
+                    ElementKind.OBJECT,
+                    modifiers
+            );
+
+            final var childContext = context.child(classDeclaration);
+
+            final var newEnclosedElements = classDeclaration.getEnclosed().stream()
+                    .filter(enclosed -> !(enclosed instanceof JMethodDeclaration methodDeclaration)
+                            || methodDeclaration.getKind() != ElementKind.CONSTRUCTOR)
+                    .map(enclosed -> (Tree) enclosed.accept(this, childContext))
+                    .toList();
+
+            newEnclosedElements.forEach(newEnclosedElement -> {
+                if (newEnclosedElement instanceof KMethodDeclaration methodDeclaration) {
+                    methodDeclaration.removeModifier(Modifier.STATIC);
+                }
+            });
+
+            kClassDeclaration.addEnclosed(newEnclosedElements);
+        } else {
+            final var modifiers = classDeclaration.getModifiers().stream()
+                    .map(Modifier::toKotlinModifier)
+                    .collect(Collectors.toSet());
+
+            kClassDeclaration = new KClassDeclaration(
+                    classDeclaration.getSimpleName(),
+                    classDeclaration.getKind(),
+                    modifiers
+            );
+
+            final Expression extending =
+                    classDeclaration.getExtending() != null
+                        ? (Expression) classDeclaration.getExtending().accept(this, context)
+                        : null;
+            final var implementing = classDeclaration.getImplementing().stream()
+                    .map(expression -> (Expression) expression.accept(this, context))
+                    .toList();
+
+            kClassDeclaration.setExtending(extending);
+            implementing.forEach(kClassDeclaration::addImplement);
+
+            final var childContext = context.child(classDeclaration);
+
+            final var newEnclosedElements = classDeclaration.getEnclosed().stream()
+                    .map(it -> (Tree) it.accept(this, childContext))
+                    .toList();
+
+            kClassDeclaration.addEnclosed(newEnclosedElements);
+
+            conditionalAddPrimaryConstructor(kClassDeclaration);
+
+            final var primaryConstructor = (KMethodDeclaration) kClassDeclaration.getPrimaryConstructor();
+
+            if (primaryConstructor != null) {
+                final var parameters = primaryConstructor.getParameters().stream()
+                                .collect(Collectors.toMap(
+                                        VariableDeclaration::getName,
+                                        parameter -> (KVariableDeclaration) parameter
+                                ));
+
+                JTreeFilter.fields(classDeclaration).forEach(field -> {
+                    final var name = field.getName();
+                    final var parameter = parameters.get(name);
+
+                    if (parameter != null) {
+                        if (field.getModifiers().contains(Modifier.FINAL)) {
+                            parameter.addModifier(Modifier.VAL);
+                        } else {
+                            parameter.addModifier(Modifier.VAR);
+                        }
+                    }
+                });
+            }
+
+            removeGetters(kClassDeclaration);
+            removeSetters(kClassDeclaration);
+        }
+
+        final var newEnclosing = (Tree) classDeclaration.getEnclosing().accept(this, context);
+        kClassDeclaration.setEnclosing(newEnclosing);
+
+        final var classSymbol = classDeclaration.getClassSymbol();
+        classSymbol.removeModifier(Modifier.PUBLIC);
+        kClassDeclaration.removeModifier(Modifier.PUBLIC);
+        kClassDeclaration.setClassSymbol(toKClassSymbol(classSymbol));
+
+        classDeclaration.getAnnotations().stream()
+                .map(annotation -> (AnnotationExpression) annotation.accept(this, context))
+                .forEach(kClassDeclaration::annotation);
+
+        return kClassDeclaration;
+    }
+
+    private ClassSymbol toKClassSymbol(final ClassSymbol jClassSymbol) {
+        final var kClassSymbol = new KClassSymbolBuilder()
+                .kind(jClassSymbol.getKind())
+                .simpleName(jClassSymbol.getSimpleName())
+                .nestingKind(jClassSymbol.getNestingKind())
+                .enclosingElement(convert(jClassSymbol.getEnclosingElement()))
+                .build();
+
+        kClassSymbol.setType(jClassSymbol.asType());
+
+        return kClassSymbol;
+    }
+
+    private AbstractSymbol convert(final Element abstractSymbol) {
+        if (abstractSymbol instanceof ClassSymbol classSymbol) {
+            return toKClassSymbol(classSymbol);
+        } else {
+            return (AbstractSymbol) abstractSymbol;
+        }
     }
 
     @Override
     public Object visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression, final CodeContext param) {
-        throw new UnsupportedOperationException();
+        return primitiveTypeExpression;
     }
+
+    @Override
+    public Object visitNoType(final NoTypeExpression noTypeExpression, final CodeContext param) {
+        return noTypeExpression;
+    }
+
+    @Override
+    public Object visitAnnotationExpression(final AnnotationExpression annotationExpression, final CodeContext context) {
+        final var annotationType = (ClassOrInterfaceTypeExpression) annotationExpression.getAnnotationType().accept(this, context);
+        final var arguments = annotationExpression.getArguments();
+        return new AnnotationExpression(annotationType,arguments);
+    }
+
+    @Override
+    public Object visitWildCardTypeExpression(final WildCardTypeExpression wildCardTypeExpression, final CodeContext param) {
+        return wildCardTypeExpression;
+    }
+
 }

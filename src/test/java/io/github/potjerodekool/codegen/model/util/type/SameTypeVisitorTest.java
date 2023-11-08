@@ -1,6 +1,6 @@
 package io.github.potjerodekool.codegen.model.util.type;
 
-import io.github.potjerodekool.codegen.model.type.PrimitiveTypeImpl;
+import io.github.potjerodekool.codegen.model.type.immutable.PrimitiveTypeImpl;
 import io.github.potjerodekool.codegen.model.type.TypeKind;
 import io.github.potjerodekool.codegen.model.util.type.check.SameTypeVisitor;
 import org.junit.jupiter.api.Test;
