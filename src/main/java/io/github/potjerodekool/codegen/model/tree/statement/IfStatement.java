@@ -5,9 +5,12 @@ import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 
 public class IfStatement extends AbstractStatement {
 
-    private final Expression condition;
+    private Expression condition;
 
-    private final BlockStatement body;
+    private BlockStatement body;
+
+    public IfStatement() {
+    }
 
     public IfStatement(final Expression condition,
                        final BlockStatement body) {
@@ -19,8 +22,18 @@ public class IfStatement extends AbstractStatement {
         return condition;
     }
 
+    public IfStatement condition(final Expression condition) {
+        this.condition = condition;
+        return this;
+    }
+
     public BlockStatement getBody() {
         return body;
+    }
+
+    public IfStatement body(final BlockStatement body) {
+        this.body = body;
+        return this;
     }
 
     @Override

@@ -14,4 +14,6 @@ public abstract class Scope {
     }
 
     public abstract Optional<AbstractSymbol> resolveSymbol(Name name);
+
+    public abstract void define(AbstractSymbol symbol);
 }

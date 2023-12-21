@@ -7,11 +7,11 @@ import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.symbol.AbstractSymbol;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
+import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
 import io.github.potjerodekool.codegen.model.symbol.kotlin.KClassSymbolBuilder;
 import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.kotlin.KAnnotationExpression;
 import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
@@ -23,8 +23,8 @@ import io.github.potjerodekool.codegen.model.type.*;
 import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.type.kotlin.UnitType;
 import io.github.potjerodekool.codegen.model.util.Elements;
+import io.github.potjerodekool.codegen.model.util.StringUtils;
 import io.github.potjerodekool.codegen.model.util.type.Types;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import static io.github.potjerodekool.codegen.model.util.StringUtils.firstUpper;
 
 public class JavaToKotlinConverter implements
-        JTreeVisitor<Object, CodeContext>,
+        TreeVisitor<Object, CodeContext>,
         TypeVisitor<TypeMirror, CodeContext>,
         AnnotationValueVisitor<Object, CodeContext> {
 
@@ -97,11 +97,13 @@ public class JavaToKotlinConverter implements
     //Elements
 
     @Override
-    public Object visitMethodDeclaration(final JMethodDeclaration methodDeclaration,
+    public Object visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration,
                                          final CodeContext context) {
-        final var childContext = context.child(methodDeclaration);
+        final var jMethodDeclaration = (JMethodDeclaration) methodDeclaration;
 
-        final var newParameters = methodDeclaration.getParameters().stream()
+        final var childContext = context.child(jMethodDeclaration);
+
+        final var newParameters = jMethodDeclaration.getParameters().stream()
                 .map(it -> (KVariableDeclaration) it.accept(this, context))
                 .toList();
 
@@ -112,26 +114,25 @@ public class JavaToKotlinConverter implements
 
 
         final var newMethod = new KMethodDeclaration(
-                methodDeclaration.getSimpleName(),
-                methodDeclaration.getKind(),
-                (Expression) methodDeclaration.getReturnType().accept(this, context),
-                methodDeclaration.getTypeParameters(),
+                jMethodDeclaration.getSimpleName(),
+                jMethodDeclaration.getKind(),
+                (Expression) jMethodDeclaration.getReturnType().accept(this, context),
+                jMethodDeclaration.getTypeParameters(),
                 newParameters,
-                methodDeclaration.getBody().orElse(null));
+                jMethodDeclaration.getBody().orElse(null));
 
-        final var newAnnotations = methodDeclaration.getAnnotations().stream()
+        final var newAnnotations = jMethodDeclaration.getAnnotations().stream()
                 .map(annotationExpression -> (AnnotationExpression) annotationExpression.accept(this, context))
                 .toList();
         newAnnotations.forEach(newMethod::annotation);
 
-        methodDeclaration.getBody().ifPresent(body -> {
+        jMethodDeclaration.getBody().ifPresent(body -> {
             final var newBody = (BlockStatement) body.accept(this, childContext);
             newMethod.setBody(newBody);
         });
 
-        newMethod.addModifiers(convertModifiers(methodDeclaration.getModifiers(),
+        newMethod.addModifiers(convertModifiers(jMethodDeclaration.getModifiers(),
                 it -> !(it == Modifier.DEFAULT || it == Modifier.STATIC)));
-
 
         final var overrideAnnotation = newMethod.getAnnotation("java.lang.Override");
 
@@ -140,7 +141,7 @@ public class JavaToKotlinConverter implements
             newMethod.addModifiers(Modifier.OVERRIDE);
         }
 
-        if (methodDeclaration.getModifiers().contains(Modifier.STATIC)) {
+        if (jMethodDeclaration.getModifiers().contains(Modifier.STATIC)) {
             newMethod.annotation("kotlin.jvm.JvmStatic");
         }
 
@@ -251,34 +252,6 @@ public class JavaToKotlinConverter implements
                 .allMatch(it -> it.getInitExpression().isPresent());
     }
 
-    private KVariableDeclaration createParameter(final KVariableDeclaration field,
-                                                 final CodeContext context) {
-        final var initExpression = field.getInitExpression()
-                .orElseGet(() -> field.getVarType().getType().isNullable()
-                        ? LiteralExpression.createNullLiteralExpression()
-                        : defaultValueResolver.createDefaultValue(field.getVarType().getType()));
-
-        final Set<Modifier> modifiers = field.getModifiers();
-
-        final var annotations = field.getAnnotations().stream()
-                .map(annotationExpression -> toFieldAnnotation(annotationExpression, context))
-                .toList();
-
-        final var parameter = new KVariableDeclaration(
-                ElementKind.PARAMETER,
-                modifiers,
-                field.getVarType(),
-                field.getName(),
-                initExpression,
-                null
-        );
-
-        annotations.forEach(parameter::annotation);
-
-        parameter.setSymbol(field.getSymbol());
-        return parameter;
-    }
-
     private Set<Modifier> convertModifiers(final Set<Modifier> modifiers,
                                            final Predicate<Modifier> filter) {
         return modifiers.stream()
@@ -286,21 +259,6 @@ public class JavaToKotlinConverter implements
                 .filter(modifier -> modifier != Modifier.PUBLIC)
                 .map(Modifier::toKotlinModifier)
                 .collect(Collectors.toUnmodifiableSet());
-    }
-
-    private AnnotationExpression toFieldAnnotation(final AnnotationExpression annotationExpression,
-                                                   final CodeContext context) {
-        final var arguments = annotationExpression.getArguments().entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        it -> (Expression) it.getValue().accept(this, context)
-                ));
-
-        return new KAnnotationExpression(
-                KAnnotationExpression.Target.FIELD,
-                annotationExpression.getAnnotationType(),
-                arguments
-        );
     }
 
     //Statements
@@ -347,6 +305,14 @@ public class JavaToKotlinConverter implements
 
     @Override
     public Expression visitMethodCall(final MethodCallExpression methodCallExpression, final CodeContext context) {
+        if (isGetterCall(methodCallExpression)) {
+            final var propertyAccessExpression = new PropertyAccessExpression();
+            propertyAccessExpression.setTarget(methodCallExpression.getTarget().orElse(null));
+            final var propertyName = methodNameToPropertyName(methodCallExpression.getMethodName().getName());
+            propertyAccessExpression.setName(new IdentifierExpression(propertyName));
+            return propertyAccessExpression;
+        }
+
         final var target = (Expression) methodCallExpression.getTarget()
                 .map(it -> it.accept(this, context))
                 .orElse(null);
@@ -356,19 +322,41 @@ public class JavaToKotlinConverter implements
                 .toList();
 
         final var convertedMethodCallOptional = convertMethodCallExpression(
-                methodCallExpression.getMethodName(),
+                methodCallExpression.getMethodName().getName(),
                 target,
                 convertedArguments,
                 context
         );
 
         return convertedMethodCallOptional.orElseGet(() ->
-            new MethodCallExpression(target, methodCallExpression.getMethodName(), convertedArguments)
+            new MethodCallExpression(target, methodCallExpression.getMethodName().getName(), convertedArguments)
         );
     }
 
+    private String methodNameToPropertyName(final String methodName) {
+        return StringUtils.firstLower(methodName.substring(3));
+    }
+
+    private boolean isGetterCall(final MethodCallExpression methodCallExpression) {
+        if (!methodCallExpression.getArguments().isEmpty()) {
+            return false;
+        }
+
+        final var symbol = methodCallExpression.getMethodName().getSymbol();
+
+        if (symbol != null) {
+            return symbol instanceof MethodSymbol methodSymbol
+                    && methodSymbol.getParameters().isEmpty()
+                    && methodSymbol.getReturnType().getKind() != TypeKind.VOID;
+        } else {
+            return methodCallExpression.getArguments().isEmpty()
+                    && methodCallExpression.getMethodName().getName().startsWith("get");
+        }
+    }
+
+
     private Optional<Expression> convertMethodCallExpression(final String methodName,
-                                                             final @Nullable Expression target,
+                                                             final Expression target,
                                                              final List<Expression> arguments,
                                                              final CodeContext context) {
         if (target == null) {
@@ -421,14 +409,15 @@ public class JavaToKotlinConverter implements
     }
 
     @Override
-    public Statement visitVariableDeclaration(final JVariableDeclaration variableDeclaration, final CodeContext context) {
-        final var kind = variableDeclaration.getKind();
+    public Statement visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final CodeContext context) {
+        final var jVariableDeclaration = (JVariableDeclaration) variableDeclaration;
+        final var kind = jVariableDeclaration.getKind();
 
-        var initExpression = variableDeclaration.getInitExpression()
+        var initExpression = jVariableDeclaration.getInitExpression()
                 .map(it -> (Expression) it.accept(this, context))
                 .orElse(null);
 
-        final var modifiers = variableDeclaration.getModifiers();
+        final var modifiers = jVariableDeclaration.getModifiers();
         final Set<Modifier> newModifiers = new HashSet<>(convertModifiers(modifiers, modifier ->
                 modifier != Modifier.PRIVATE
         ));
@@ -439,60 +428,27 @@ public class JavaToKotlinConverter implements
             newModifiers.add(Modifier.VAR);
         }
 
-        final var localVariableName = variableDeclaration.getName();
-        final var newLocalVariableType = (Expression) variableDeclaration.getVarType().accept(this, context);
+        final var localVariableName = jVariableDeclaration.getName();
+        final var newLocalVariableType = (Expression) jVariableDeclaration.getVarType().accept(this, context);
 
         context.defineLocalVariable(newLocalVariableType.getType(), localVariableName);
 
-        if (initExpression == null && variableDeclaration.getKind() == ElementKind.FIELD) {
+        if (initExpression == null && jVariableDeclaration.getKind() == ElementKind.FIELD) {
             initExpression = defaultValueResolver.createDefaultValue(newLocalVariableType.getType());
         }
 
         final var newVarDeclaration = new KVariableDeclaration(
-                variableDeclaration.getKind(),
+                jVariableDeclaration.getKind(),
                 newModifiers,
                 newLocalVariableType,
                 localVariableName,
                 initExpression,
-                variableDeclaration.getSymbol()
+                jVariableDeclaration.getSymbol()
         );
 
-        newVarDeclaration.setSymbol(variableDeclaration.getSymbol());
+        newVarDeclaration.setSymbol(jVariableDeclaration.getSymbol());
         return newVarDeclaration;
     }
-
-    /*
-    @Override
-    public Void visitVariable(final VariableElement variableElement,
-                              final CodeContext context) {
-        final VariableSymbol newVariableElement;
-
-        if (variableElement.getKind() == ElementKind.PARAMETER) {
-            newVariableElement = VariableSymbol.createParameter(
-                    variableElement.getSimpleName().toString(),
-                    variableElement.asType().accept(this, context)
-            );
-        } else if (variableElement.getKind() == ElementKind.FIELD) {
-            newVariableElement = VariableSymbol.createField(
-                    variableElement.getSimpleName().toString(),
-                    variableElement.asType().accept(this, context)
-            );
-        } else {
-            throw new UnsupportedOperationException();
-        }
-
-        if (newVariableElement.getKind() == ElementKind.PARAMETER) {
-            final var method = (MethodSymbol) context.getAstNode();
-            method.addParameter(newVariableElement);
-        } else if (newVariableElement.getKind() == ElementKind.FIELD) {
-            final var clazz = (ClassSymbol) context.getAstNode();
-            clazz.removeEnclosedElement(variableElement);
-            clazz.addEnclosedElement(newVariableElement);
-        }
-
-        return null;
-    }
-    */
 
     @Override
     public Expression visitNamedMethodArgumentExpression(final NamedMethodArgumentExpression namedMethodArgumentExpression, final CodeContext context) {
@@ -514,6 +470,14 @@ public class JavaToKotlinConverter implements
         final var left = (Expression) binaryExpression.getLeft().accept(this, context);
         final var right = (Expression) binaryExpression.getRight().accept(this, context);
         return new BinaryExpression(left, right, binaryExpression.getOperator());
+    }
+
+    @Override
+    public Object visitUnaryExpression(final UnaryExpression unaryExpression, final CodeContext context) {
+        final var expression = (Expression) unaryExpression.getExpression().accept(this, context);
+        return new UnaryExpression()
+                .operator(unaryExpression.getOperator())
+                .expression(expression);
     }
 
     @Override
@@ -839,25 +803,26 @@ public class JavaToKotlinConverter implements
     }
 
     @Override
-    public Statement visitClassDeclaration(final JClassDeclaration classDeclaration,
+    public Statement visitClassDeclaration(final ClassDeclaration<?> classDeclaration,
                                            final CodeContext context) {
+        final var jClassDeclaration = (JClassDeclaration) classDeclaration;
         KClassDeclaration kClassDeclaration;
 
-        if (isUtilityClass(classDeclaration)) {
-            final var modifiers = classDeclaration.getModifiers().stream()
+        if (isUtilityClass(jClassDeclaration)) {
+            final var modifiers = jClassDeclaration.getModifiers().stream()
                     .filter(modifier -> modifier != Modifier.FINAL)
                     .map(Modifier::toKotlinModifier)
                     .collect(Collectors.toSet());
 
             kClassDeclaration = new KClassDeclaration(
-                    classDeclaration.getSimpleName(),
+                    jClassDeclaration.getSimpleName(),
                     ElementKind.OBJECT,
                     modifiers
             );
 
-            final var childContext = context.child(classDeclaration);
+            final var childContext = context.child(jClassDeclaration);
 
-            final var newEnclosedElements = classDeclaration.getEnclosed().stream()
+            final var newEnclosedElements = jClassDeclaration.getEnclosed().stream()
                     .filter(enclosed -> !(enclosed instanceof JMethodDeclaration methodDeclaration)
                             || methodDeclaration.getKind() != ElementKind.CONSTRUCTOR)
                     .map(enclosed -> (Tree) enclosed.accept(this, childContext))
@@ -871,30 +836,30 @@ public class JavaToKotlinConverter implements
 
             kClassDeclaration.addEnclosed(newEnclosedElements);
         } else {
-            final var modifiers = classDeclaration.getModifiers().stream()
+            final var modifiers = jClassDeclaration.getModifiers().stream()
                     .map(Modifier::toKotlinModifier)
                     .collect(Collectors.toSet());
 
             kClassDeclaration = new KClassDeclaration(
-                    classDeclaration.getSimpleName(),
-                    classDeclaration.getKind(),
+                    jClassDeclaration.getSimpleName(),
+                    jClassDeclaration.getKind(),
                     modifiers
             );
 
             final Expression extending =
-                    classDeclaration.getExtending() != null
-                        ? (Expression) classDeclaration.getExtending().accept(this, context)
+                    jClassDeclaration.getExtending() != null
+                        ? (Expression) jClassDeclaration.getExtending().accept(this, context)
                         : null;
-            final var implementing = classDeclaration.getImplementing().stream()
+            final var implementing = jClassDeclaration.getImplementing().stream()
                     .map(expression -> (Expression) expression.accept(this, context))
                     .toList();
 
             kClassDeclaration.setExtending(extending);
             implementing.forEach(kClassDeclaration::addImplement);
 
-            final var childContext = context.child(classDeclaration);
+            final var childContext = context.child(jClassDeclaration);
 
-            final var newEnclosedElements = classDeclaration.getEnclosed().stream()
+            final var newEnclosedElements = jClassDeclaration.getEnclosed().stream()
                     .map(it -> (Tree) it.accept(this, childContext))
                     .toList();
 
@@ -911,7 +876,7 @@ public class JavaToKotlinConverter implements
                                         parameter -> (KVariableDeclaration) parameter
                                 ));
 
-                JTreeFilter.fields(classDeclaration).forEach(field -> {
+                JTreeFilter.fields(jClassDeclaration).forEach(field -> {
                     final var name = field.getName();
                     final var parameter = parameters.get(name);
 
@@ -929,15 +894,15 @@ public class JavaToKotlinConverter implements
             removeSetters(kClassDeclaration);
         }
 
-        final var newEnclosing = (Tree) classDeclaration.getEnclosing().accept(this, context);
+        final var newEnclosing = (Tree) jClassDeclaration.getEnclosing().accept(this, context);
         kClassDeclaration.setEnclosing(newEnclosing);
 
-        final var classSymbol = classDeclaration.getClassSymbol();
+        final var classSymbol = jClassDeclaration.getClassSymbol();
         classSymbol.removeModifier(Modifier.PUBLIC);
         kClassDeclaration.removeModifier(Modifier.PUBLIC);
         kClassDeclaration.setClassSymbol(toKClassSymbol(classSymbol));
 
-        classDeclaration.getAnnotations().stream()
+        jClassDeclaration.getAnnotations().stream()
                 .map(annotation -> (AnnotationExpression) annotation.accept(this, context))
                 .forEach(kClassDeclaration::annotation);
 

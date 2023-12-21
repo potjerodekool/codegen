@@ -7,8 +7,7 @@ import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.expression.ArrayInitializerExpression;
 import io.github.potjerodekool.codegen.model.tree.expression.NewClassExpression;
 import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.type.BoundKind;
 import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpression;
 import io.github.potjerodekool.codegen.model.tree.type.PrimitiveTypeExpression;
@@ -26,7 +25,7 @@ import io.github.potjerodekool.codegen.model.util.type.Types;
 import java.util.List;
 
 public class JavaAstPrinter extends AbstractAstPrinter
-    implements JTreeVisitor<Void, CodeContext> {
+    implements TreeVisitor<Void, CodeContext> {
 
     public JavaAstPrinter(final Printer printer,
                           final Types types) {
@@ -43,12 +42,6 @@ public class JavaAstPrinter extends AbstractAstPrinter
     }
 
     //Expressions
-
-
-    @Override
-    public Void visitVariableDeclaration(final JVariableDeclaration variableDeclaration, final CodeContext context) {
-        return visitVariableDeclaration((VariableDeclaration<?>) variableDeclaration, context);
-    }
 
     @Override
     public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
@@ -293,7 +286,7 @@ public class JavaAstPrinter extends AbstractAstPrinter
     }
 
     @Override
-    public Void visitClassDeclaration(final JClassDeclaration classDeclaration, final CodeContext context) {
+    public Void visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final CodeContext context) {
         final var classContext = context.child(classDeclaration);
 
         printer.printIndent();
@@ -375,18 +368,20 @@ public class JavaAstPrinter extends AbstractAstPrinter
     }
 
     @Override
-    public Void visitMethodDeclaration(final JMethodDeclaration methodDeclaration,
+    public Void visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration,
                                        final CodeContext context) {
-        final var methodContext = context.child(methodDeclaration);
+        final var javaMethodDeclaration = (JMethodDeclaration) methodDeclaration;
 
-        final var annotations = methodDeclaration.getAnnotations();
+        final var methodContext = context.child(javaMethodDeclaration);
+
+        final var annotations = javaMethodDeclaration.getAnnotations();
 
         if (!annotations.isEmpty()) {
             printAnnotations(annotations, true, true, methodContext);
             printer.print(" ");
         }
 
-        final var modifiers = methodDeclaration.getModifiers();
+        final var modifiers = javaMethodDeclaration.getModifiers();
 
         if (!modifiers.isEmpty()) {
             printer.printIndent();
@@ -394,16 +389,16 @@ public class JavaAstPrinter extends AbstractAstPrinter
             printer.print(" ");
         }
 
-        if (methodDeclaration.getKind() != ElementKind.CONSTRUCTOR) {
-            methodDeclaration.getReturnType().getType().accept(this, methodContext);
+        if (javaMethodDeclaration.getKind() != ElementKind.CONSTRUCTOR) {
+            javaMethodDeclaration.getReturnType().getType().accept(this, methodContext);
             printer.print(" ");
         }
 
-        printer.print(methodDeclaration.getSimpleName());
+        printer.print(javaMethodDeclaration.getSimpleName());
 
-        visitMethodParameters(methodDeclaration.getParameters(), methodContext);
+        visitMethodParameters(javaMethodDeclaration.getParameters(), methodContext);
 
-        final var bodyOptional = methodDeclaration.getBody();
+        final var bodyOptional = javaMethodDeclaration.getBody();
 
         if (bodyOptional.isPresent()) {
             final var body = bodyOptional.get();

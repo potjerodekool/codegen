@@ -4,9 +4,9 @@ import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.symbol.AbstractSymbol;
 import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
+import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.WithMetaData;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.*;
 
@@ -16,7 +16,7 @@ public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> ex
 
     private String name;
 
-    private @Nullable Expression initExpression;
+    private Expression initExpression;
 
     private AbstractSymbol symbol;
 
@@ -26,7 +26,7 @@ public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> ex
 
     public VariableDeclaration(final Expression varType,
                                final String name,
-                               final @Nullable Expression initExpression,
+                               final Expression initExpression,
                                final AbstractSymbol symbol) {
         this.varType = varType;
         this.name = name;
@@ -43,7 +43,7 @@ public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> ex
         return metaData;
     }
 
-    public abstract Set<? extends Modifier> getModifiers();
+    public abstract Set<Modifier> getModifiers();
 
     public Expression getVarType() {
         return varType;
@@ -95,6 +95,12 @@ public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> ex
 
     public boolean isAnnotationPresent(final String name) {
         throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
+        return visitor.visitVariableDeclaration(this, param);
     }
 
 }

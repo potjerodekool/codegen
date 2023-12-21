@@ -61,7 +61,7 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
 
     public abstract ElementKind getKind();
 
-    public abstract Set<? extends Modifier> getModifiers();
+    public abstract Set<Modifier> getModifiers();
 
     public List<Tree> getEnclosed() {
         return enclosed;
@@ -131,10 +131,16 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
 
     public abstract ClassSymbol getClassSymbol();
 
+    public abstract void setClassSymbol(ClassSymbol classSymbol);
+
     public abstract List<? extends MethodDeclaration<?>> constructors();
 
     public abstract List<? extends MethodDeclaration<?>> methods();
 
     public abstract List<? extends VariableDeclaration<?>> fields();
 
+    @Override
+    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
+        return visitor.visitClassDeclaration(this, param);
+    }
 }

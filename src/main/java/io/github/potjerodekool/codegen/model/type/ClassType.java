@@ -2,7 +2,6 @@ package io.github.potjerodekool.codegen.model.type;
 
 import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -75,7 +74,7 @@ public class ClassType extends AbstractType implements DeclaredType {
     }
 
     @Override
-    public boolean equals(final @Nullable Object obj) {
+    public boolean equals(final Object obj) {
         if (obj instanceof DeclaredType otherType) {
             final var otherElement = (ClassSymbol) otherType.asElement();
             return this.typeElement.getQualifiedName().contentEquals(otherElement.getQualifiedName());

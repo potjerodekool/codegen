@@ -1,7 +1,5 @@
 package io.github.potjerodekool.codegen;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Arrays;
 
 public enum Language {
@@ -11,7 +9,7 @@ public enum Language {
 
     private final String fileExtension;
 
-    public static Language fromString(final @Nullable String value) {
+    public static Language fromString(final String value) {
         if (value == null) {
             return Language.JAVA;
         }

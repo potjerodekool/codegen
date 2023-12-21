@@ -1,7 +1,5 @@
 package io.github.potjerodekool.codegen;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.function.Consumer;
@@ -49,7 +47,7 @@ public final class StreamUtils {
         }
 
         @Override
-        public @Nullable Spliterator<E> trySplit() {
+        public Spliterator<E> trySplit() {
             return null;
         }
 

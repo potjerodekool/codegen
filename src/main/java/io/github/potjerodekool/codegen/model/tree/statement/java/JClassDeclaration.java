@@ -2,8 +2,6 @@ package io.github.potjerodekool.codegen.model.tree.statement.java;
 
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
-import io.github.potjerodekool.codegen.model.tree.JTreeVisitor;
-import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
@@ -15,7 +13,7 @@ import java.util.*;
 
 public class JClassDeclaration extends ClassDeclaration<JClassDeclaration> {
 
-    private final Set<Modifier> modifiers = new HashSet<>();
+    private final Set<Modifier> modifiers = new LinkedHashSet<>();
 
     private final ElementKind kind;
 
@@ -38,12 +36,16 @@ public class JClassDeclaration extends ClassDeclaration<JClassDeclaration> {
     }
 
     public JClassDeclaration modifiers(final Modifier... modifiers) {
-        modifiers(Set.of(modifiers));
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
         return this;
     }
 
     public JClassDeclaration modifiers(final Set<Modifier> modifiers) {
-        this.modifiers.addAll(modifiers);
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
         return this;
     }
 
@@ -61,6 +63,7 @@ public class JClassDeclaration extends ClassDeclaration<JClassDeclaration> {
         return classSymbol;
     }
 
+    @Override
     public void setClassSymbol(final ClassSymbol classSymbol) {
         this.classSymbol = classSymbol;
     }
@@ -145,12 +148,5 @@ public class JClassDeclaration extends ClassDeclaration<JClassDeclaration> {
                 )
                 .map(enclosed -> (JVariableDeclaration) enclosed)
                 .toList();
-    }
-
-
-    @Override
-    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
-        final var javaTreeVisitor = (JTreeVisitor<R, P>) visitor;
-        return javaTreeVisitor.visitClassDeclaration(this, param);
     }
 }

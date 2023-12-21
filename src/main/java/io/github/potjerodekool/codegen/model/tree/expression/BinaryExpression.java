@@ -4,11 +4,14 @@ import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 
 public class BinaryExpression extends AbstractExpression {
 
-    private final Expression left;
+    private Expression left;
 
-    private final Expression right;
+    private Expression right;
 
-    private final Operator operator;
+    private Operator operator;
+
+    public BinaryExpression() {
+    }
 
     public BinaryExpression(final Expression left,
                             final Expression right,
@@ -22,12 +25,27 @@ public class BinaryExpression extends AbstractExpression {
         return left;
     }
 
+    public BinaryExpression left(final Expression left) {
+        this.left = left;
+        return this;
+    }
+
     public Expression getRight() {
         return right;
     }
 
+    public BinaryExpression right(final Expression right) {
+        this.right = right;
+        return this;
+    }
+
     public Operator getOperator() {
         return operator;
+    }
+
+    public BinaryExpression operator(final Operator operator) {
+        this.operator = operator;
+        return this;
     }
 
     @Override

@@ -2,18 +2,13 @@ package io.github.potjerodekool.codegen.resolve;
 
 import io.github.potjerodekool.codegen.model.Attribute;
 import io.github.potjerodekool.codegen.model.CompilationUnit;
+import io.github.potjerodekool.codegen.model.element.*;
+import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
+import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
 import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
-import io.github.potjerodekool.codegen.model.element.*;
-import io.github.potjerodekool.codegen.model.symbol.*;
-import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KVariableDeclaration;
-import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
+import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.type.*;
 import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.util.Elements;
@@ -23,8 +18,7 @@ import java.util.List;
 
 public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
         TypeVisitor<Void, CompilationUnit>,
-        JTreeVisitor<Void, CompilationUnit>,
-        KTreeVisitor<Void, CompilationUnit>,
+        TreeVisitor<Void, CompilationUnit>,
         AnnotationValueVisitor<Void, CompilationUnit> {
 
     public void organiseImports(final CompilationUnit compilationUnit) {
@@ -118,6 +112,12 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
+    public Void visitUnaryExpression(final UnaryExpression unaryExpression, final CompilationUnit cu) {
+        unaryExpression.getExpression().accept(this, cu);
+        return null;
+    }
+
+    @Override
     public Void visitFieldAccessExpression(final FieldAccessExpression fieldAccessExpression,
                                            final CompilationUnit cu) {
         fieldAccessExpression.getScope().accept(this, cu);
@@ -159,19 +159,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitVariableDeclaration(final JVariableDeclaration variableDeclaration,
-                                         final CompilationUnit cu) {
-        return doVisitVariableDeclaration(variableDeclaration, cu);
-    }
-
-    @Override
-    public Void visitVariableDeclaration(final KVariableDeclaration variableDeclaration,
-                                         final CompilationUnit cu) {
-        return doVisitVariableDeclaration(variableDeclaration, cu);
-    }
-
-    private Void doVisitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
-                                            final CompilationUnit cu) {
+    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final CompilationUnit cu) {
         variableDeclaration.getAnnotations().forEach(annotation -> annotation.accept(this, cu));
         variableDeclaration.getInitExpression().ifPresent(it -> it.accept(this, cu));
 
@@ -182,24 +170,11 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitClassDeclaration(final JClassDeclaration classDeclaration,
-                                      final CompilationUnit compilationUnit) {
-        return doVisitClassDeclaration(classDeclaration, compilationUnit);
-    }
-
-    @Override
-    public Void visitClassDeclaration(final KClassDeclaration classDeclaration,
-                                      final CompilationUnit compilationUnit) {
-        return doVisitClassDeclaration(classDeclaration, compilationUnit);
-    }
-
-    private Void doVisitClassDeclaration(final ClassDeclaration<?> classDeclaration,
-                                         final CompilationUnit compilationUnit) {
+    public Void visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final CompilationUnit compilationUnit) {
         classDeclaration.getAnnotations().forEach(annotationExpression -> annotationExpression.accept(this, compilationUnit));
         classDeclaration.getEnclosed().forEach(enclosed -> enclosed.accept(this, compilationUnit));
         return null;
     }
-
 
     @Override
     public Void visitLiteralExpression(final LiteralExpression literalExpression,
@@ -562,19 +537,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitMethodDeclaration(final JMethodDeclaration methodDeclaration,
-                                       final CompilationUnit compilationUnit) {
-        return doVisitMethodDeclaration(methodDeclaration, compilationUnit);
-    }
-
-    @Override
-    public Void visitMethodDeclaration(final KMethodDeclaration methodDeclaration,
-                                       final CompilationUnit compilationUnit) {
-        return doVisitMethodDeclaration(methodDeclaration, compilationUnit);
-    }
-
-    private Void doVisitMethodDeclaration(final MethodDeclaration<?> methodDeclaration,
-                                          final CompilationUnit compilationUnit) {
+    public Void visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration, final CompilationUnit compilationUnit) {
         methodDeclaration.getTypeParameters().forEach(typeParameter -> typeParameter.accept(this, compilationUnit));
         methodDeclaration.getAnnotations().forEach(annotationExpression -> annotationExpression.accept(this, compilationUnit));
         methodDeclaration.getParameters().forEach(parameter -> parameter.accept(this, compilationUnit));

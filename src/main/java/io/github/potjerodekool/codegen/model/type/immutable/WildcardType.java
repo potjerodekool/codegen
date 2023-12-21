@@ -4,15 +4,14 @@ import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
 import io.github.potjerodekool.codegen.model.type.TypeKind;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 import io.github.potjerodekool.codegen.model.type.TypeVisitor;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
 
 public class WildcardType implements TypeMirror  {
 
-    private final @Nullable TypeMirror extendsBound;
-    private final @Nullable TypeMirror superBound;
+    private final TypeMirror extendsBound;
+    private final TypeMirror superBound;
     private final boolean isNullable;
 
     public static WildcardType create() {
@@ -31,8 +30,8 @@ public class WildcardType implements TypeMirror  {
         return new WildcardType(null, superBound, false);
     }
 
-    private WildcardType(final @Nullable TypeMirror extendsBound,
-                         final @Nullable TypeMirror superBound,
+    private WildcardType(final TypeMirror extendsBound,
+                         final TypeMirror superBound,
                          final boolean isNullable) {
         this.extendsBound = extendsBound;
         this.superBound = superBound;

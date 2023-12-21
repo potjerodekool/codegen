@@ -2,7 +2,6 @@ package io.github.potjerodekool.codegen.model.type;
 
 import io.github.potjerodekool.codegen.model.element.AnnotationMirror;
 import io.github.potjerodekool.codegen.model.symbol.TypeVariableSymbol;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -38,7 +37,7 @@ public class TypeVariableImpl implements TypeVariable {
     }
 
     @Override
-    public @Nullable TypeVariableSymbol asElement() {
+    public TypeVariableSymbol asElement() {
         return typeVariableSymbol;
     }
 

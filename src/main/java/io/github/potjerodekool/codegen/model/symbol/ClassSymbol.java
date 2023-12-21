@@ -2,9 +2,7 @@ package io.github.potjerodekool.codegen.model.symbol;
 
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
-import io.github.potjerodekool.codegen.resolve.Scope;
 import io.github.potjerodekool.codegen.resolve.WritableScope;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,11 +11,11 @@ import java.util.stream.Collectors;
 
 public class ClassSymbol extends TypeSymbol implements TypeElement {
 
-    private @Nullable TypeMirror superType = null;
+    private TypeMirror superType = null;
 
     private final List<TypeMirror> interfaces = new ArrayList<>();
 
-    private @Nullable MethodSymbol primaryConstructor;
+    private MethodSymbol primaryConstructor;
 
     private final List<TypeParameterElement> typeParameters = new ArrayList<>();
 
@@ -37,7 +35,7 @@ public class ClassSymbol extends TypeSymbol implements TypeElement {
     }
 
     @Override
-    public void setEnclosingElement(final @Nullable Element enclosingElement) {
+    public void setEnclosingElement(final Element enclosingElement) {
         super.setEnclosingElement(enclosingElement);
         setQualifiedName(createQualifiedName(getSimpleName(), enclosingElement));
     }
@@ -65,11 +63,11 @@ public class ClassSymbol extends TypeSymbol implements TypeElement {
     }
 
     @Override
-    public @Nullable TypeMirror getSuperclass() {
+    public TypeMirror getSuperclass() {
         return superType;
     }
 
-    public void setSuperType(final @Nullable TypeMirror superType) {
+    public void setSuperType(final TypeMirror superType) {
         this.superType = superType;
     }
 
@@ -90,7 +88,7 @@ public class ClassSymbol extends TypeSymbol implements TypeElement {
         this.interfaces.add(interfaceType);
     }
 
-    public @Nullable MethodSymbol getPrimaryConstructor() {
+    public MethodSymbol getPrimaryConstructor() {
         return primaryConstructor;
     }
 

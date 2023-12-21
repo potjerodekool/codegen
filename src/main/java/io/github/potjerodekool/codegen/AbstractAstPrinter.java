@@ -68,7 +68,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         }
 
         compilationUnit.getDefinitions().stream()
-                .filter(definition ->  !(definition instanceof PackageDeclaration))
+                .filter(definition -> !(definition instanceof PackageDeclaration))
                 .forEach(type -> type.accept(this, context));
         return null;
     }
@@ -367,7 +367,8 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
             case CHAR -> "char";
             case FLOAT -> "float";
             case DOUBLE -> "double";
-            default -> throw new IllegalArgumentException(String.format("kind %s is not a primitive", primitiveType.getKind()));
+            default ->
+                    throw new IllegalArgumentException(String.format("kind %s is not a primitive", primitiveType.getKind()));
         };
     }
 
@@ -380,7 +381,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
                     printer.print(".");
                 });
 
-        printer.print(methodCallExpression.getMethodName());
+        printer.print(methodCallExpression.getMethodName().getName());
         printer.print("(");
 
         final var arguments = methodCallExpression.getArguments();
@@ -397,8 +398,9 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return null;
     }
 
-    protected Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
-                                            final CodeContext context) {
+    @Override
+    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
+                                         final CodeContext context) {
         final var isField = variableDeclaration.getSymbol().getKind() == ElementKind.FIELD;
         final var annotations = variableDeclaration.getAnnotations();
 

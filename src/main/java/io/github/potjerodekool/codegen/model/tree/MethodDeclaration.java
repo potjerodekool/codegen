@@ -1,12 +1,12 @@
 package io.github.potjerodekool.codegen.model.tree;
 
+import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.*;
 
@@ -24,7 +24,7 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
 
     private final List<VariableDeclaration<?>> parameters = new ArrayList<>();
 
-    private @Nullable BlockStatement body;
+    private BlockStatement body;
 
     private MethodSymbol methodSymbol;
 
@@ -33,7 +33,7 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
     public MethodDeclaration(final CharSequence simpleName,
                              final Expression returnType,
                              final List<TypeParameter> typeParameters,
-                             final List<? extends VariableDeclaration<?>> parameters, final @Nullable BlockStatement body) {
+                             final List<? extends VariableDeclaration<?>> parameters, final BlockStatement body) {
         this.simpleName = Name.of(simpleName);
         this.returnType = returnType;
         this.typeParameters.addAll(typeParameters);
@@ -145,5 +145,12 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
         this.methodSymbol = methodSymbol;
     }
 
-    public abstract Set<? extends Modifier> getModifiers();
+    public abstract ElementKind getKind();
+
+    public abstract Set<Modifier> getModifiers();
+
+    @Override
+    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
+        return visitor.visitMethodDeclaration(this, param);
+    }
 }

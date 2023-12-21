@@ -3,11 +3,8 @@ package io.github.potjerodekool.codegen.model.tree.statement.kotlin;
 import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.symbol.AbstractSymbol;
-import io.github.potjerodekool.codegen.model.tree.KTreeVisitor;
-import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,7 +19,7 @@ public class KVariableDeclaration extends VariableDeclaration<KVariableDeclarati
                                 final Set<Modifier> modifiers,
                                 final Expression varType,
                                 final String name,
-                                final @Nullable Expression initExpression,
+                                final Expression initExpression,
                                 final AbstractSymbol symbol) {
         super(varType, name, initExpression, symbol);
         this.kind = kind;
@@ -47,9 +44,4 @@ public class KVariableDeclaration extends VariableDeclaration<KVariableDeclarati
         this.modifiers.remove(modifier);
     }
 
-    @Override
-    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
-        final var kotlinTreeVisitor = (KTreeVisitor<R,P>) visitor;
-        return kotlinTreeVisitor.visitVariableDeclaration(this, param);
-    }
 }

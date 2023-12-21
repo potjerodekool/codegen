@@ -4,7 +4,7 @@ import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
 import io.github.potjerodekool.codegen.model.type.ExecutableType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import io.github.potjerodekool.codegen.resolve.WritableScope;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,9 +18,11 @@ public class MethodSymbol extends AbstractSymbol implements ExecutableElement {
     private final List<TypeParameterElement> typeParameters = new ArrayList<>();
     private final List<VariableSymbol> parameters = new ArrayList<>();
 
-    private @Nullable BlockStatement body;
+    private BlockStatement body;
 
-    private @Nullable AnnotationValue defaultValue = null;
+    private AnnotationValue defaultValue = null;
+
+    public WritableScope scope;
 
     @SuppressWarnings("initialization.fields.uninitialized")
     public MethodSymbol(final ElementKind kind,
@@ -76,7 +78,7 @@ public class MethodSymbol extends AbstractSymbol implements ExecutableElement {
         return Optional.ofNullable(body);
     }
 
-    public void setBody(final @Nullable BlockStatement body) {
+    public void setBody(final BlockStatement body) {
         this.body = body;
     }
 
@@ -85,7 +87,7 @@ public class MethodSymbol extends AbstractSymbol implements ExecutableElement {
     }
 
     @Override
-    public @Nullable AnnotationValue getDefaultValue() {
+    public AnnotationValue getDefaultValue() {
         return defaultValue;
     }
 

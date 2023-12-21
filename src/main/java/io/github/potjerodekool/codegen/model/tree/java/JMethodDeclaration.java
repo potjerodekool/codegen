@@ -7,24 +7,20 @@ import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class JMethodDeclaration extends MethodDeclaration<JMethodDeclaration> implements JElementTree {
 
     private final ElementKind kind;
-    private final Set<Modifier> modifiers = new HashSet<>();
+    private final Set<Modifier> modifiers = new LinkedHashSet<>();
 
     public JMethodDeclaration(final CharSequence simpleName,
                               final ElementKind kind,
                               final Expression returnType,
                               final List<TypeParameter> typeParameters,
                               final List<VariableDeclaration<?>> parameters,
-                              final @Nullable BlockStatement body) {
+                              final BlockStatement body) {
         super(simpleName, returnType, typeParameters, parameters, body);
         this.kind = kind;
     }
@@ -94,7 +90,6 @@ public class JMethodDeclaration extends MethodDeclaration<JMethodDeclaration> im
 
     @Override
     public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
-        final var javaTreeVisitor = (JTreeVisitor<R, P>) visitor;
-        return javaTreeVisitor.visitMethodDeclaration(this, param);
+        return visitor.visitMethodDeclaration(this, param);
     }
 }

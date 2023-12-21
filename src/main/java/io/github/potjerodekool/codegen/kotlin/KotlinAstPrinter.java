@@ -2,19 +2,16 @@ package io.github.potjerodekool.codegen.kotlin;
 
 import io.github.potjerodekool.codegen.AbstractAstPrinter;
 import io.github.potjerodekool.codegen.CodeContext;
-import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
-import io.github.potjerodekool.codegen.model.tree.KTreeVisitor;
+import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.io.Printer;
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.tree.kotlin.KAnnotationExpression;
 import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.tree.statement.IfStatement;
-import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.TypeParameter;
 import io.github.potjerodekool.codegen.model.type.*;
 import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.model.type.java.JavaArrayType;
@@ -31,7 +28,7 @@ import java.util.Optional;
 import static io.github.potjerodekool.codegen.CollectionUtils.forEachWithIndexed;
 
 public class KotlinAstPrinter extends AbstractAstPrinter
-        implements KTreeVisitor<Void, CodeContext> {
+        implements TreeVisitor<Void, CodeContext> {
 
     public KotlinAstPrinter(final Printer printer,
                             final Types types) {
@@ -80,7 +77,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
     }
 
     @Override
-    public Void visitVariableDeclaration(final KVariableDeclaration variableDeclaration,
+    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
                                          final CodeContext context) {
         final var isField = variableDeclaration.getKind() == ElementKind.FIELD;
         final var modifiers = variableDeclaration.getModifiers();
@@ -564,7 +561,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
         throw new UnsupportedOperationException();
     }
     @Override
-    public Void visitClassDeclaration(final KClassDeclaration classDeclaration, final CodeContext context) {
+    public Void visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final CodeContext context) {
         final var classContext = context.child(classDeclaration);
 
         printer.printIndent();
@@ -648,12 +645,14 @@ public class KotlinAstPrinter extends AbstractAstPrinter
     }
 
     @Override
-    public Void visitMethodDeclaration(final KMethodDeclaration methodDeclaration,
+    public Void visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration,
                                        final CodeContext context) {
-        if (methodDeclaration.getKind() == ElementKind.CONSTRUCTOR) {
-            return visitSecondaryConstructor(methodDeclaration, context);
+        final var kMethodDeclaration = (KMethodDeclaration) methodDeclaration;
+
+        if (kMethodDeclaration.getKind() == ElementKind.CONSTRUCTOR) {
+            return visitSecondaryConstructor(kMethodDeclaration, context);
         } else {
-            return visitMethod(methodDeclaration, context);
+            return visitMethod(kMethodDeclaration, context);
         }
     }
 

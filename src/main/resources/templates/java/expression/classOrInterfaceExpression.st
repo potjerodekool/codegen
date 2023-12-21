@@ -1,0 +1,3 @@
+classOrInterfaceExpression(classOrInterfaceExpression) ::= <%
+    <classOrInterfaceExpression.name>
+%>

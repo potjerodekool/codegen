@@ -1,40 +1,40 @@
 package io.github.potjerodekool.codegen.model.tree.expression;
 
 import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class MethodCallExpression extends AbstractExpression {
 
-    private final @Nullable Expression target;
+    private Expression target;
 
-    private final String methodName;
+    private IdentifierExpression methodName;
 
     private final List<Expression> arguments = new ArrayList<>();
 
-    public MethodCallExpression(final @Nullable Expression target,
+    public MethodCallExpression() {
+    }
+
+    public MethodCallExpression(final Expression target,
                                 final String methodName) {
         this(target, methodName, List.of());
     }
 
-    public MethodCallExpression(final @Nullable Expression target,
+    public MethodCallExpression(final Expression target,
                                 final String methodName,
                                 final List<? extends Expression> arguments) {
         this.target = target;
-        this.methodName = methodName;
+        this.methodName = new IdentifierExpression(methodName);
         this.arguments.addAll(arguments);
     }
 
-    public MethodCallExpression(final @Nullable Expression target,
+    public MethodCallExpression(final Expression target,
                                 final String methodName,
                                 final Expression... arguments) {
         this(target, methodName, List.of(arguments));
     }
 
-    public MethodCallExpression(final @Nullable Expression target,
+    public MethodCallExpression(final Expression target,
                                 final String methodName,
                                 final Expression argument) {
         this(target, methodName, List.of(argument));
@@ -44,12 +44,37 @@ public class MethodCallExpression extends AbstractExpression {
         return Optional.ofNullable(target);
     }
 
-    public String getMethodName() {
+    public MethodCallExpression target(final Expression target) {
+        this.target = target;
+        return this;
+    }
+
+    public IdentifierExpression getMethodName() {
         return methodName;
+    }
+
+    public MethodCallExpression methodName(final String methodName) {
+        this.methodName = new IdentifierExpression(methodName);
+        return this;
     }
 
     public List<Expression> getArguments() {
         return arguments;
+    }
+
+    public MethodCallExpression argument(final Expression argument) {
+        this.arguments.add(argument);
+        return this;
+    }
+
+    public MethodCallExpression arguments(final Expression... arguments) {
+        Collections.addAll(this.arguments, arguments);
+        return this;
+    }
+
+    public MethodCallExpression arguments(final List<? extends Expression> arguments) {
+        this.arguments.addAll(arguments);
+        return this;
     }
 
     public MethodCallExpression invoke(final String methodName) {

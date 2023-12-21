@@ -1,0 +1,3 @@
+stringLiteralExpression(stringLiteralExpression) ::= <%
+    "<stringLiteralExpression.value>"
+%>

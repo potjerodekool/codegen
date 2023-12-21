@@ -36,4 +36,9 @@ public class IdentifierExpression extends AbstractExpression {
                            final P param) {
         return visitor.visitIdentifierExpression(this, param);
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

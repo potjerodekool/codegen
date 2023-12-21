@@ -2,7 +2,6 @@ package io.github.potjerodekool.codegen;
 
 import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +9,7 @@ import java.util.Optional;
 
 public class CodeContext {
 
-    private final @Nullable CodeContext parentContext;
+    private final CodeContext parentContext;
 
     private final Object astNode;
 
@@ -21,7 +20,7 @@ public class CodeContext {
     }
 
     private CodeContext(final Object astNode,
-                        final @Nullable CodeContext parentContext) {
+                        final CodeContext parentContext) {
         this.astNode = astNode;
         this.parentContext = parentContext;
     }
@@ -38,7 +37,7 @@ public class CodeContext {
         return astNode;
     }
 
-    public @Nullable CodeContext getParentContext() {
+    public CodeContext getParentContext() {
         return parentContext;
     }
 

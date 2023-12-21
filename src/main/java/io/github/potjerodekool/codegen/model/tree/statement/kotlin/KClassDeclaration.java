@@ -4,8 +4,6 @@ import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
-import io.github.potjerodekool.codegen.model.tree.KTreeVisitor;
-import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
@@ -17,7 +15,7 @@ public class KClassDeclaration extends ClassDeclaration<KClassDeclaration> {
 
     private final ElementKind kind;
 
-    private final Set<Modifier> modifiers = new HashSet<>();
+    private final Set<Modifier> modifiers = new LinkedHashSet<>();
 
     private ClassSymbol classSymbol;
 
@@ -26,7 +24,7 @@ public class KClassDeclaration extends ClassDeclaration<KClassDeclaration> {
                              final Set<Modifier> modifiers) {
         super(simpleName);
         this.kind = kind;
-        addModifiers(modifiers);
+        modifiers(modifiers);
     }
 
     @Override
@@ -34,16 +32,20 @@ public class KClassDeclaration extends ClassDeclaration<KClassDeclaration> {
         return kind;
     }
 
-    public void addModifier(final Modifier modifier) {
+    public void modifier(final Modifier modifier) {
         this.modifiers.add(modifier);
     }
 
-    public void addModifiers(final Modifier... modifiers) {
-        addModifiers(List.of(modifiers));
+    public void modifiers(final Modifier... modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
     }
 
-    public void addModifiers(final Collection<Modifier> modifiers) {
-        this.modifiers.addAll(modifiers);
+    public void modifiers(final Collection<Modifier> modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
     }
 
     public void removeModifier(final Modifier modifier) {
@@ -134,12 +136,6 @@ public class KClassDeclaration extends ClassDeclaration<KClassDeclaration> {
                 )
                 .map(enclosed -> (KVariableDeclaration) enclosed)
                 .toList();
-    }
-
-    @Override
-    public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
-        final var kotlinTreeVisitor = (KTreeVisitor<R, P>) visitor;
-        return kotlinTreeVisitor.visitClassDeclaration(this, param);
     }
 
 }

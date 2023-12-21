@@ -31,6 +31,8 @@ public class PackageDeclaration extends AbstractTree {
     }
 
     public boolean isDefaultPackage() {
+        name.getName();
+
         return name.getName().contentEquals("");
     }
 }

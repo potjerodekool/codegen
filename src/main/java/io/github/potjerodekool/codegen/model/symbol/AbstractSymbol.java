@@ -9,7 +9,6 @@ import io.github.potjerodekool.codegen.model.type.DeclaredType;
 import io.github.potjerodekool.codegen.model.type.TypeMirror;
 import io.github.potjerodekool.codegen.model.util.Elements;
 import io.github.potjerodekool.codegen.resolve.WritableScope;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.util.*;
@@ -25,7 +24,7 @@ public abstract class AbstractSymbol implements AstNode, Element {
 
     private TypeMirror type;
 
-    private @Nullable Element enclosingElement;
+    private Element enclosingElement;
 
     private final List<Element> enclosedElements = new ArrayList<>();
 
@@ -97,11 +96,11 @@ public abstract class AbstractSymbol implements AstNode, Element {
     }
 
     @Override
-    public @Nullable Element getEnclosingElement() {
+    public Element getEnclosingElement() {
         return enclosingElement;
     }
 
-    public void setEnclosingElement(final @Nullable Element enclosingElement) {
+    public void setEnclosingElement(final Element enclosingElement) {
         this.enclosingElement = enclosingElement;
     }
 
