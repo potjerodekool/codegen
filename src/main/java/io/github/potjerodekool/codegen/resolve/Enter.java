@@ -2,6 +2,7 @@ package io.github.potjerodekool.codegen.resolve;
 
 import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.CompilationUnitVisitor;
+import io.github.potjerodekool.codegen.model.CompositeScope;
 import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.element.NestingKind;
 import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
@@ -25,22 +26,23 @@ public class Enter implements
 
     @Override
     public Object visitCompilationUnit(final CompilationUnit compilationUnit,
-                                       final Scope param) {
-        compilationUnit.getDefinitions().forEach(definition -> definition.accept(this, param));
+                                       final Scope scope) {
+        final var compositeScope = new CompositeScope();
+        compilationUnit.getDefinitions().forEach(definition -> definition.accept(this, compositeScope));
         return null;
     }
 
     @Override
-    public Object visitPackageDeclaration(final PackageDeclaration packageDeclaration, final Scope param) {
+    public Object visitPackageDeclaration(final PackageDeclaration packageDeclaration, final Scope scope) {
         final var packageSymbol = symbolTable.enterPackage(null, Name.of(packageDeclaration.getName().getName()));
         packageDeclaration.setPackageSymbol(packageSymbol);
-        packageSymbol.scope = new WritableScope(packageSymbol);
+        packageSymbol.scope = new WritableScope(packageSymbol, scope);
         return null;
     }
 
     @Override
-    public Object visitClassDeclaration(final ClassDeclaration<?> classDeclaration,
-                                        final Scope param) {
+    public Object visitClassDeclaration(final ClassDeclaration classDeclaration,
+                                        final Scope scope) {
         final var enclosing = classDeclaration.getEnclosing();
         final var nestingKind = enclosing instanceof PackageDeclaration
                 ? NestingKind.TOP_LEVEL
@@ -49,16 +51,17 @@ public class Enter implements
         final var classSymbol = symbolTable.enterClass(null, classDeclaration.getQualifiedName());
         classSymbol.setKind(classDeclaration.getKind());
         classSymbol.setNestingKind(nestingKind);
-        classDeclaration.setClassSymbol(classSymbol);
+        classDeclaration.classSymbol(classSymbol);
 
-        classSymbol.scope = new WritableScope(classSymbol);
+        final var classScope = new WritableScope(classSymbol, scope);
+        classSymbol.scope = classScope;
 
-        classDeclaration.getEnclosed().forEach(enclosed -> enclosed.accept(this, param));
+        classDeclaration.getEnclosed().forEach(enclosed -> enclosed.accept(this, classScope));
         return null;
     }
 
     @Override
-    public Object visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration, final Scope scope) {
+    public Object visitMethodDeclaration(final MethodDeclaration methodDeclaration, final Scope scope) {
         final var methodSymbol = new MethodSymbol(
                 methodDeclaration.getKind(),
                 null,
@@ -67,9 +70,9 @@ public class Enter implements
 
         methodSymbol.addModifiers(methodDeclaration.getModifiers());
 
-        methodDeclaration.setMethodSymbol(methodSymbol);
+        methodDeclaration.methodSymbol(methodSymbol);
 
-        final var methodScope = new WritableScope(methodSymbol);
+        final var methodScope = new WritableScope(methodSymbol, scope);
         methodSymbol.scope = methodScope;
 
         methodDeclaration.getTypeParameters().forEach(typeParam -> typeParam.accept(this, methodScope));
@@ -85,11 +88,11 @@ public class Enter implements
     }
 
     @Override
-    public Object visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
+    public Object visitVariableDeclaration(final VariableDeclaration variableDeclaration,
                                            final Scope scope) {
         final var variableSymbol = new VariableSymbol(variableDeclaration.getKind(), variableDeclaration.getName());
         variableSymbol.addModifiers(variableDeclaration.getModifiers());
-        variableDeclaration.setSymbol(variableSymbol);
+        variableDeclaration.symbol(variableSymbol);
 
         scope.define(variableSymbol);
 

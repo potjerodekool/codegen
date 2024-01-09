@@ -22,15 +22,31 @@ public class ClassFinder {
         if (resolved.isPresent()) {
             return (TypeElement) resolved.get();
         } else {
+            final var parentScope = scope.getParent();
+
+            if (parentScope != null) {
+                final var clazz = findClass(name, parentScope);
+
+                if (clazz != null) {
+                    return clazz;
+                }
+            }
+
             final var module = resolveModule(scope);
             return elements.getTypeElement(module, name);
         }
     }
 
     private ModuleSymbol resolveModule(final Scope scope) {
+        if (scope == null) {
+            return null;
+        }
+
         final var owner = scope.owner;
 
-        if (owner instanceof PackageSymbol packageSymbol) {
+        if (owner == null) {
+            return null;
+        } else if (owner instanceof PackageSymbol packageSymbol) {
             return packageSymbol.module;
         } else {
             final var enclosingElement = (AbstractSymbol) owner.getEnclosingElement();

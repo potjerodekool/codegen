@@ -7,7 +7,6 @@ import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.io.Printer;
 import io.github.potjerodekool.codegen.model.element.*;
 import io.github.potjerodekool.codegen.model.tree.kotlin.KAnnotationExpression;
-import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.type.*;
@@ -35,7 +34,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
         super(printer, types);
     }
 
-    void visitPrimaryConstructor(final MethodDeclaration<?> method,
+    void visitPrimaryConstructor(final MethodDeclaration method,
                                  final CodeContext context) {
         if (!method.getAnnotations().isEmpty()) {
             printer.print(" ");
@@ -77,7 +76,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
     }
 
     @Override
-    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
+    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration,
                                          final CodeContext context) {
         final var isField = variableDeclaration.getKind() == ElementKind.FIELD;
         final var modifiers = variableDeclaration.getModifiers();
@@ -561,7 +560,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
         throw new UnsupportedOperationException();
     }
     @Override
-    public Void visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final CodeContext context) {
+    public Void visitClassDeclaration(final ClassDeclaration classDeclaration, final CodeContext context) {
         final var classContext = context.child(classDeclaration);
 
         printer.printIndent();
@@ -645,18 +644,16 @@ public class KotlinAstPrinter extends AbstractAstPrinter
     }
 
     @Override
-    public Void visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration,
+    public Void visitMethodDeclaration(final MethodDeclaration methodDeclaration,
                                        final CodeContext context) {
-        final var kMethodDeclaration = (KMethodDeclaration) methodDeclaration;
-
-        if (kMethodDeclaration.getKind() == ElementKind.CONSTRUCTOR) {
-            return visitSecondaryConstructor(kMethodDeclaration, context);
+        if (methodDeclaration.getKind() == ElementKind.CONSTRUCTOR) {
+            return visitSecondaryConstructor(methodDeclaration, context);
         } else {
-            return visitMethod(kMethodDeclaration, context);
+            return visitMethod(methodDeclaration, context);
         }
     }
 
-    private Void visitSecondaryConstructor(final MethodDeclaration<?> methodDeclaration,
+    private Void visitSecondaryConstructor(final MethodDeclaration methodDeclaration,
                                            final CodeContext context) {
         final var modifiers = methodDeclaration.getModifiers();
         printModifiers(modifiers);
@@ -675,7 +672,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
         return null;
     }
 
-    private Void visitMethod(final KMethodDeclaration methodDeclaration,
+    private Void visitMethod(final MethodDeclaration methodDeclaration,
                              final CodeContext context) {
         printer.printIndent();
 
@@ -744,7 +741,7 @@ public class KotlinAstPrinter extends AbstractAstPrinter
         if (printTypArgs) {
             final var arguments = classOrInterfaceTypeExpression.getTypeArguments();
 
-            if (!arguments.isEmpty()) {
+            if (arguments != null) {
                 printer.print("<");
                 final var lastIndex = arguments.size() -1;
 

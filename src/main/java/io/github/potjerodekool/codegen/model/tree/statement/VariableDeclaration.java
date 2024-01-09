@@ -10,7 +10,7 @@ import io.github.potjerodekool.codegen.model.tree.expression.Expression;
 
 import java.util.*;
 
-public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> extends AbstractStatement implements VariableTree, WithMetaData {
+public class VariableDeclaration extends AbstractStatement implements VariableTree, WithMetaData {
 
     private Expression varType;
 
@@ -23,6 +23,10 @@ public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> ex
     private final List<AnnotationExpression> annotations = new ArrayList<>();
 
     private final Map<String, Object> metaData = new HashMap<>();
+
+    private ElementKind kind;
+
+    private final Set<Modifier> modifiers = new LinkedHashSet<>();
 
     public VariableDeclaration(final Expression varType,
                                final String name,
@@ -37,56 +41,98 @@ public abstract class VariableDeclaration<VD extends VariableDeclaration<VD>> ex
     public VariableDeclaration() {
     }
 
-    public abstract ElementKind getKind();
+    public static VariableDeclaration parameter() {
+        return new VariableDeclaration().kind(ElementKind.PARAMETER);
+    }
+
+    public ElementKind getKind() {
+        return kind;
+    }
+
+    public VariableDeclaration kind(final ElementKind kind) {
+        this.kind = kind;
+        return this;
+    }
 
     public Map<String, Object> getMetaData() {
         return metaData;
     }
 
-    public abstract Set<Modifier> getModifiers();
+    public Set<Modifier> getModifiers() {
+        return modifiers;
+    }
+
+    public VariableDeclaration modifier(final Modifier modifier) {
+        this.modifiers.add(modifier);
+        return this;
+    }
+
+    public VariableDeclaration modifiers(final Modifier... modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
+        return this;
+    }
+
+    public VariableDeclaration modifiers(final Collection<Modifier> modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
+        return this;
+    }
+
+    public VariableDeclaration removeModifier(final Modifier modifier) {
+        this.modifiers.remove(modifier);
+        return this;
+    }
+
+    public boolean hasModifier(final Modifier modifier) {
+        return this.modifiers.contains(modifier);
+    }
 
     public Expression getVarType() {
         return varType;
     }
 
-    public VD varType(final Expression varType) {
+    public VariableDeclaration varType(final Expression varType) {
         this.varType = varType;
-        return (VD) this;
+        return this;
     }
 
     public String getName() {
         return name;
     }
 
-    public VD name(final String name) {
+    public VariableDeclaration name(final String name) {
         this.name = name;
-        return (VD) this;
+        return this;
     }
 
     public Optional<Expression> getInitExpression() {
         return Optional.ofNullable(initExpression);
     }
 
-    public VD initExpression(final Expression initExpression) {
+    public VariableDeclaration initExpression(final Expression initExpression) {
         this.initExpression = initExpression;
-        return (VD) this;
+        return this;
     }
 
     public AbstractSymbol getSymbol() {
         return symbol;
     }
 
-    public void setSymbol(final AbstractSymbol symbol) {
+    public VariableDeclaration symbol(final AbstractSymbol symbol) {
         this.symbol = symbol;
+        return this;
     }
 
-    public VD annotation(final String className) {
+    public VariableDeclaration annotation(final String className) {
         annotation(new AnnotationExpression(className));
-        return (VD) this;
+        return this;
     }
-    public VD annotation(final AnnotationExpression annotationExpression) {
+    public VariableDeclaration annotation(final AnnotationExpression annotationExpression) {
         this.annotations.add(annotationExpression);
-        return (VD) this;
+        return this;
     }
 
     public List<AnnotationExpression> getAnnotations() {

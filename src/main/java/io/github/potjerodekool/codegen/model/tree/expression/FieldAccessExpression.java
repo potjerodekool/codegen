@@ -6,9 +6,12 @@ import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpre
 
 public class FieldAccessExpression extends AbstractExpression {
 
-    private final Expression scope;
+    private Expression scope;
 
-    private final Name field;
+    private Name field;
+
+    public FieldAccessExpression() {
+    }
 
     public FieldAccessExpression(final Expression scope,
                                  final Name field) {
@@ -30,8 +33,18 @@ public class FieldAccessExpression extends AbstractExpression {
         return scope;
     }
 
+    public FieldAccessExpression scope(final Expression scope) {
+        this.scope = scope;
+        return this;
+    }
+
     public Name getField() {
         return field;
+    }
+
+    public FieldAccessExpression field(final Name field) {
+        this.field = field;
+        return this;
     }
 
     @Override

@@ -11,8 +11,9 @@ public class WritableScope extends Scope {
 
     private final Map<Name, AbstractSymbol> symbols = new HashMap<>();
 
-    public WritableScope(final AbstractSymbol owner) {
-        super(owner);
+    public WritableScope(final AbstractSymbol owner,
+                         final Scope parent) {
+        super(owner, parent);
     }
 
     @Override

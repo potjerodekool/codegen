@@ -63,6 +63,9 @@ public abstract class AbstractSymbol implements AstNode, Element {
     }
 
     protected void validateSimpleName(final CharSequence simpleName) {
+        if (simpleName == null) {
+            throw new IllegalArgumentException("simpleName is null");
+        }
         if (simpleName.toString().contains(".")) {
             throw new IllegalArgumentException("Not a simpleName " + simpleName);
         }

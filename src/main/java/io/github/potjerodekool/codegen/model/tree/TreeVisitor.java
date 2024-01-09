@@ -170,17 +170,17 @@ public interface TreeVisitor<R,P> {
         return null;
     }
 
-    default R visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final P param) {
+    default R visitClassDeclaration(final ClassDeclaration classDeclaration, final P param) {
         throwException();
         return null;
     }
 
-    default R visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration, final P param) {
+    default R visitMethodDeclaration(final MethodDeclaration methodDeclaration, final P param) {
         throwException();
         return null;
     }
 
-    default R visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final P param) {
+    default R visitVariableDeclaration(final VariableDeclaration variableDeclaration, final P param) {
         throwException();
         return null;
     }

@@ -1,8 +1,15 @@
 package io.github.potjerodekool.codegen.template.model.expression;
 
+import io.github.potjerodekool.codegen.model.tree.type.TypeExpression;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class ClassOrInterfaceTypeExpr implements TypeExpr {
 
     private String name;
+
+    private List<TypeExpr> typeArguments;
 
     public ClassOrInterfaceTypeExpr(final String name) {
         this.name = name;
@@ -14,6 +21,25 @@ public class ClassOrInterfaceTypeExpr implements TypeExpr {
 
     public ClassOrInterfaceTypeExpr name(final String name) {
         this.name = name;
+        return this;
+    }
+
+    public List<TypeExpr> getTypeArguments() {
+        return typeArguments;
+    }
+
+    public ClassOrInterfaceTypeExpr typeArgument(final TypeExpr typeArgument) {
+        if (typeArguments == null) {
+            typeArguments = new ArrayList<>();
+        }
+        typeArguments.add(typeArgument);
+        return this;
+    }
+
+    public ClassOrInterfaceTypeExpr typeArguments(final TypeExpr... typeArgument) {
+        for (final TypeExpr argument : typeArguments) {
+            typeArgument(argument);
+        }
         return this;
     }
 

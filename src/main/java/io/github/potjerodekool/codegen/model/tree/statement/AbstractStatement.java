@@ -10,7 +10,7 @@ public abstract class AbstractStatement implements Statement {
     }
 
     @Override
-    public void setType(final TypeMirror type) {
-
+    public AbstractStatement type(final TypeMirror type) {
+        return this;
     }
 }

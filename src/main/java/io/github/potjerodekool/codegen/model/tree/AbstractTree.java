@@ -12,8 +12,9 @@ public abstract class AbstractTree implements Tree {
     }
 
     @Override
-    public void setType(final TypeMirror type) {
+    public AbstractTree type(final TypeMirror type) {
         this.type = type;
+        return this;
     }
 
 }

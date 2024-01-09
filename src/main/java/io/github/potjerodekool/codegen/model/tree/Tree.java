@@ -6,7 +6,7 @@ public interface Tree {
 
     TypeMirror getType();
 
-    void setType(TypeMirror type);
+    Tree type(TypeMirror type);
 
     <R,P> R accept(final TreeVisitor<R,P> visitor, P param);
 }

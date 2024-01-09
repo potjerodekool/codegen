@@ -10,12 +10,14 @@ method(method) ::= <%
     <method.simpleName>(<method.parameters:{ parameter | </java/element/parameter(parameter)>};separator=", ">)
     <if(method.isAbstract)>
     ;
-    <else>
+    <elseif(method.body)>
     <\ >
     {
-    <if(method.body)>
-    <method.body.statements:{statement | </java/statement/statement(statement)>}>
-    <endif>
-    }
+    <\n>
+    <method.body.statements:{statement | <\t></java/statement/statement(statement)>};separator="\n">
+    <\n>
+    <\t>}
+    <else>
+    ;
     <endif>
 %>

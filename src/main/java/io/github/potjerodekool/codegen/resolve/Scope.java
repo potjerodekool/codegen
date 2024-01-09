@@ -9,8 +9,15 @@ public abstract class Scope {
 
     public final AbstractSymbol owner;
 
-    protected Scope(final AbstractSymbol owner) {
+    private final Scope parent;
+
+    protected Scope(final AbstractSymbol owner, Scope parent) {
         this.owner = owner;
+        this.parent = parent;
+    }
+
+    public Scope getParent() {
+        return parent;
     }
 
     public abstract Optional<AbstractSymbol> resolveSymbol(Name name);

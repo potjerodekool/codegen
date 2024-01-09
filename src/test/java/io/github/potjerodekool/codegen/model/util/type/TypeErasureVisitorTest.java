@@ -14,8 +14,8 @@ class TypeErasureVisitorTest {
 
     private final TypeErasureVisitor typeErasureVisitor = new TypeErasureVisitor();
     private final Environment environment = new Environment(ClassPath.getJavaClassPath());
-    private final Elements elements = environment.getElementUtils();
-    private final Types types = environment.getTypes();
+    private final Elements elements = environment.getKotlinElements();
+    private final Types types = environment.getKotlinTypes();
 
     @Test
     void visitType() {

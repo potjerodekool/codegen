@@ -1,9 +1,8 @@
 package io.github.potjerodekool.codegen.model.tree;
 
 import io.github.potjerodekool.codegen.model.element.ElementKind;
-import io.github.potjerodekool.codegen.model.tree.kotlin.KMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.kotlin.KVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -13,28 +12,28 @@ public final class KTreeFilter {
     private KTreeFilter() {
     }
 
-    public static List<KMethodDeclaration> constructors(final KClassDeclaration classDeclaration) {
+    public static List<MethodDeclaration> constructors(final ClassDeclaration classDeclaration) {
         return filterEnclosed(
                 classDeclaration,
                 methodDeclaration -> methodDeclaration.getKind() == ElementKind.CONSTRUCTOR,
-                KMethodDeclaration.class);
+                MethodDeclaration.class);
     }
 
-    public static List<KMethodDeclaration> methods(final KClassDeclaration classDeclaration) {
+    public static List<MethodDeclaration> methods(final ClassDeclaration classDeclaration) {
         return filterEnclosed(
                 classDeclaration,
                 methodDeclaration -> methodDeclaration.getKind() == ElementKind.METHOD,
-                KMethodDeclaration.class);
+                MethodDeclaration.class);
     }
 
-    public static List<KVariableDeclaration> fields(final KClassDeclaration classDeclaration) {
+    public static List<VariableDeclaration> fields(final ClassDeclaration classDeclaration) {
         return filterEnclosed(
                 classDeclaration,
                 variableDeclaration -> variableDeclaration.getKind() == ElementKind.FIELD,
-                KVariableDeclaration.class);
+                VariableDeclaration.class);
     }
 
-    private static <E extends Tree> List<E> filterEnclosed(final KClassDeclaration classDeclaration,
+    private static <E extends Tree> List<E> filterEnclosed(final ClassDeclaration classDeclaration,
                                                            final Predicate<E> predicate,
                                                            final Class<E> clazz) {
         return classDeclaration.getEnclosed().stream()

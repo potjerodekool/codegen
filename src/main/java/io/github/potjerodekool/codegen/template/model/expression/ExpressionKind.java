@@ -2,12 +2,15 @@ package io.github.potjerodekool.codegen.template.model.expression;
 
 public enum ExpressionKind {
 
+    ANNOTATION,
     BINARY,
     CLASS_OR_INTERFACE,
     TYPE,
+    WILDCARD,
     IDENTIFIER,
     METHOD_INVOCATION,
-    STRING_LITERAL,
+    LITERAL,
+    NEW_CLASS,
     UNARY,
     ARRAY,
     PROPERTY_ACCESS,

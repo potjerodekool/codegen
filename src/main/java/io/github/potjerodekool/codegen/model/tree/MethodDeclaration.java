@@ -5,14 +5,22 @@ import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.MethodSymbol;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
+import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.BlockStatement;
+import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
+import io.github.potjerodekool.codegen.model.type.TypeKind;
+import io.github.potjerodekool.codegen.model.type.TypeMirror;
 
 import java.util.*;
+import java.util.function.Consumer;
 
-public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implements Tree, WithMetaData {
+public class MethodDeclaration implements Tree, WithMetaData, ElementTree {
 
     private Name simpleName;
+
+    private ElementKind kind;
+    private final Set<Modifier> modifiers = new LinkedHashSet<>();
 
     private final List<Tree> enclosed = new ArrayList<>();
     private Tree enclosing;
@@ -22,7 +30,7 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
 
     private final List<TypeParameter> typeParameters = new ArrayList<>();
 
-    private final List<VariableDeclaration<?>> parameters = new ArrayList<>();
+    private final List<VariableDeclaration> parameters = new ArrayList<>();
 
     private BlockStatement body;
 
@@ -30,10 +38,12 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
 
     private final Map<String, Object> metaData = new HashMap<>();
 
+    private TypeMirror type;
+
     public MethodDeclaration(final CharSequence simpleName,
                              final Expression returnType,
                              final List<TypeParameter> typeParameters,
-                             final List<? extends VariableDeclaration<?>> parameters, final BlockStatement body) {
+                             final List<? extends VariableDeclaration> parameters, final BlockStatement body) {
         this.simpleName = Name.of(simpleName);
         this.returnType = returnType;
         this.typeParameters.addAll(typeParameters);
@@ -44,17 +54,50 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
     public MethodDeclaration() {
     }
 
+    public static MethodDeclaration constructor(final ClassDeclaration classDeclaration) {
+        final var constructor = new MethodDeclaration()
+                .kind(ElementKind.CONSTRUCTOR)
+                .simpleName(classDeclaration.getSimpleName())
+                .returnType(new NoTypeExpression(TypeKind.VOID));
+
+        classDeclaration.addEnclosed(constructor);
+        constructor.setEnclosing(classDeclaration);
+        return constructor;
+    }
+
+    public static MethodDeclaration primaryConstructor(final ClassDeclaration classDeclaration) {
+        final var constructor = new MethodDeclaration()
+                .kind(ElementKind.CONSTRUCTOR)
+                .simpleName(classDeclaration.getSimpleName())
+                .returnType(new NoTypeExpression(TypeKind.VOID));
+
+        classDeclaration.setPrimaryConstructor(constructor);
+        constructor.setEnclosing(classDeclaration);
+        return constructor;
+    }
+
+    public static MethodDeclaration method() {
+        return new MethodDeclaration()
+                .kind(ElementKind.METHOD);
+    }
+
     public Map<String, Object> getMetaData() {
         return metaData;
+    }
+
+    public MethodDeclaration metaData(final String key,
+                                      final Object value) {
+        this.metaData.put(key, value);
+        return this;
     }
 
     public Name getSimpleName() {
         return simpleName;
     }
 
-    public MD setSimpleName(final Name simpleName) {
+    public MethodDeclaration simpleName(final Name simpleName) {
         this.simpleName = simpleName;
-        return (MD) this;
+        return this;
     }
 
     public List<Tree> getEnclosed() {
@@ -81,13 +124,14 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
         return annotations;
     }
 
-    public MD annotation(final String className) {
+    public MethodDeclaration annotation(final String className) {
         annotation(new AnnotationExpression(className));
-        return (MD) this;
+        return this;
     }
-    public MD annotation(final AnnotationExpression annotationExpression) {
+
+    public MethodDeclaration annotation(final AnnotationExpression annotationExpression) {
         this.annotations.add(annotationExpression);
-        return (MD) this;
+        return this;
     }
 
     public void removeAnnotation(final AnnotationExpression annotationExpression) {
@@ -105,52 +149,118 @@ public abstract class MethodDeclaration<MD extends MethodDeclaration<MD>> implem
         return returnType;
     }
 
-    public MD setReturnType(final Expression returnType) {
+    public MethodDeclaration returnType(final Expression returnType) {
         this.returnType = returnType;
-        return (MD) this;
+        return this;
     }
 
     public List<TypeParameter> getTypeParameters() {
         return typeParameters;
     }
 
-    public MD addTypeParameters(final List<TypeParameter> typeParameters) {
+    public MethodDeclaration typeParameters(final List<TypeParameter> typeParameters) {
         this.typeParameters.addAll(typeParameters);
-        return (MD) this;
+        return this;
     }
 
-    public List<VariableDeclaration<?>> getParameters() {
+    public List<VariableDeclaration> getParameters() {
         return parameters;
     }
 
-    public MD addParameter(final VariableDeclaration<?> parameter) {
+    public MethodDeclaration parameter(final Consumer<VariableDeclaration> parameterBuilder) {
+        final var parameter = new VariableDeclaration().kind(ElementKind.PARAMETER);
+        parameterBuilder.accept(parameter);
+        parameter(parameter);
+        return this;
+    }
+
+    public MethodDeclaration parameter(final VariableDeclaration parameter) {
         this.parameters.add(parameter);
-        return (MD) this;
+        return this;
+    }
+
+    public MethodDeclaration parameters(final VariableDeclaration... parameters) {
+        for (final VariableDeclaration parameter : parameters) {
+            parameter(parameter);
+        }
+        return this;
+    }
+
+    public MethodDeclaration parameters(final Collection<VariableDeclaration> parameters) {
+        this.parameters.addAll(parameters);
+        return this;
     }
 
     public Optional<BlockStatement> getBody() {
         return Optional.ofNullable(body);
     }
 
-    public MD setBody(final BlockStatement body) {
+    public MethodDeclaration body(final BlockStatement body) {
         this.body = body;
-        return (MD) this;
+        return this;
     }
 
     public MethodSymbol getMethodSymbol() {
         return methodSymbol;
     }
 
-    public void setMethodSymbol(final MethodSymbol methodSymbol) {
+    public void methodSymbol(final MethodSymbol methodSymbol) {
         this.methodSymbol = methodSymbol;
     }
 
-    public abstract ElementKind getKind();
+    public ElementKind getKind() {
+        return this.kind;
+    }
 
-    public abstract Set<Modifier> getModifiers();
+    public MethodDeclaration kind(final ElementKind kind) {
+        this.kind = kind;
+        return this;
+    }
+
+    public Set<Modifier> getModifiers() {
+        return this.modifiers;
+    }
+
+    public MethodDeclaration modifier(final Modifier modifier) {
+        this.modifiers.add(modifier);
+        return this;
+    }
+
+    public MethodDeclaration modifiers(final Modifier... modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
+        return this;
+    }
+
+    public MethodDeclaration modifiers(final Collection<Modifier> modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
+        return this;
+    }
+
+    public MethodDeclaration removeModifier(final Modifier modifier) {
+        this.modifiers.remove(modifier);
+        return this;
+    }
+
+    public boolean hasModifier(final Modifier modifier) {
+        return this.modifiers.contains(modifier);
+    }
 
     @Override
     public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
         return visitor.visitMethodDeclaration(this, param);
+    }
+
+    @Override
+    public TypeMirror getType() {
+        return type;
+    }
+
+    public MethodDeclaration type(final TypeMirror type) {
+        this.type = type;
+        return this;
     }
 }

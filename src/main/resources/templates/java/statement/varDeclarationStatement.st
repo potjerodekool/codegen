@@ -1,7 +1,7 @@
 varDeclarationStatement(varDeclarationStatement) ::= <%
-<varDeclarationStatement.modifiers:{ modifier | <java/modifier(modifier)>}>
     <if(!varDeclarationStatement.modifiers.isEmpty)>
-    mods <\ >
+    </java/modifiers(varDeclarationStatement.modifiers)>
+    <\ >
     <endif>
     </java/expression/expression(varDeclarationStatement.type)>
     <\ >

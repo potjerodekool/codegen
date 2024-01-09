@@ -9,9 +9,12 @@ import java.util.Map;
 
 public class AnnotationExpression extends AbstractExpression {
 
-    private final ClassOrInterfaceTypeExpression annotationType;
+    private ClassOrInterfaceTypeExpression annotationType;
 
     private final Map<String, Expression> arguments = new HashMap<>();
+
+    public AnnotationExpression() {
+    }
 
     public AnnotationExpression(final String annotationType,
                                 final Expression value) {
@@ -44,6 +47,11 @@ public class AnnotationExpression extends AbstractExpression {
 
     public ClassOrInterfaceTypeExpression getAnnotationType() {
         return annotationType;
+    }
+
+    public AnnotationExpression annotationType(final ClassOrInterfaceTypeExpression annotationType) {
+        this.annotationType = annotationType;
+        return this;
     }
 
     public Map<String, Expression> getArguments() {

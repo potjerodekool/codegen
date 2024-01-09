@@ -5,9 +5,9 @@ import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.model.element.Name;
-import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpression;
 import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
 import io.github.potjerodekool.codegen.model.type.TypeKind;
@@ -18,9 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
 class JavaToKotlinConverterTest {
@@ -45,41 +42,29 @@ class JavaToKotlinConverterTest {
     void convert() {
         final var compilationUnit = new CompilationUnit(Language.JAVA);
 
-        final var classDeclaration = new JClassDeclaration(
-                "ErrorDto",
-                ElementKind.CLASS
+        final var classDeclaration = new ClassDeclaration()
+                .simpleName(Name.of("ErrorDto"))
+                .kind(ElementKind.CLASS);
+
+        classDeclaration.addEnclosed(new VariableDeclaration()
+                        .kind(ElementKind.FIELD)
+                        .varType(new ClassOrInterfaceTypeExpression("java.lang.String"))
+                        .name("code")
         );
 
-        classDeclaration.addEnclosed(new JVariableDeclaration(
-                ElementKind.FIELD,
-                Set.of(),
-                new ClassOrInterfaceTypeExpression("java.lang.String"),
-                "code",
-                null,
-                null
-        ));
-
-        final var constructor = new JMethodDeclaration(
-                "ErrorDto",
-                ElementKind.CONSTRUCTOR,
-                new NoTypeExpression(TypeKind.VOID),
-                List.of(),
-                List.of(
-                        new JVariableDeclaration(
-                                ElementKind.PARAMETER,
-                                Set.of(),
-                                new ClassOrInterfaceTypeExpression("java.lang.String"),
-                                "code",
-                                null,
-                                null
-                        )
-                ),
-                null
-        );
+        final var constructor = new MethodDeclaration()
+                .simpleName(Name.of("ErrorDto"))
+                .kind(ElementKind.CONSTRUCTOR)
+                .returnType(new NoTypeExpression(TypeKind.VOID))
+                .parameter(new VariableDeclaration()
+                                .kind(ElementKind.PARAMETER)
+                                .varType(new ClassOrInterfaceTypeExpression("java.lang.String"))
+                                .name("code")
+                );
 
         classDeclaration.addEnclosed(constructor);
 
-        compilationUnit.add(classDeclaration);
+        compilationUnit.classDeclaration(classDeclaration);
 
         converter.convert(compilationUnit);
     }
@@ -282,8 +267,10 @@ class JavaToKotlinConverterTest {
 
     @Test
     void visitClassDeclaration() {
-        final var classDeclaration = new JClassDeclaration(Name.of("SomeClass"), ElementKind.CLASS)
-                .modifiers(Set.of(Modifier.PUBLIC, Modifier.FINAL));
+        final var classDeclaration = new ClassDeclaration()
+                .simpleName(Name.of("SomeClass"))
+                .kind(ElementKind.CLASS)
+                .modifiers(Modifier.PUBLIC, Modifier.FINAL);
         final var result = classDeclaration.accept(converter, null);
         System.out.println(result);
     }

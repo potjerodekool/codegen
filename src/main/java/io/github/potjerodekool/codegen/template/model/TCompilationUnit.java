@@ -6,7 +6,7 @@ import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CompilationUnit {
+public class TCompilationUnit {
 
     private final Language language;
 
@@ -16,7 +16,7 @@ public class CompilationUnit {
 
     private final List<TypeElem> elements = new ArrayList<>();
 
-    public CompilationUnit(final Language language) {
+    public TCompilationUnit(final Language language) {
         this.language = language;
     }
 
@@ -28,7 +28,7 @@ public class CompilationUnit {
         return packageName;
     }
 
-    public CompilationUnit withPackageName(final String packageName) {
+    public TCompilationUnit packageName(final String packageName) {
         this.packageName = packageName;
         return this;
     }
@@ -37,7 +37,7 @@ public class CompilationUnit {
         return imports;
     }
 
-    public CompilationUnit withImport(final String importName) {
+    public TCompilationUnit importItem(final String importName) {
         if (importName.endsWith(".*")) {
             this.imports.add(new StarImportItem(importName.substring(0, importName.length() - 2)));
         } else {
@@ -50,7 +50,7 @@ public class CompilationUnit {
         return elements;
     }
 
-    public void withElement(final TypeElem element) {
+    public void element(final TypeElem element) {
         this.elements.add(element);
     }
 }

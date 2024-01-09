@@ -101,7 +101,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return modifier.name().toLowerCase();
     }
 
-    public void visitMethodParameters(final List<VariableDeclaration<?>> parameters,
+    public void visitMethodParameters(final List<VariableDeclaration> parameters,
                                       final CodeContext context) {
         printer.print("(");
 
@@ -399,7 +399,7 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
     }
 
     @Override
-    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration,
+    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration,
                                          final CodeContext context) {
         final var isField = variableDeclaration.getSymbol().getKind() == ElementKind.FIELD;
         final var annotations = variableDeclaration.getAnnotations();
@@ -720,10 +720,10 @@ public abstract class AbstractAstPrinter implements CompilationUnitVisitor<Void,
         return className;
     }
 
-    private ClassDeclaration<?> findTopLevelClassDeclaration(final CodeContext context) {
+    private ClassDeclaration findTopLevelClassDeclaration(final CodeContext context) {
         final var astNode = context.getAstNode();
 
-        if (astNode instanceof ClassDeclaration<?> classDeclaration) {
+        if (astNode instanceof ClassDeclaration classDeclaration) {
             final var enclosing = classDeclaration.getEnclosing();
             if (enclosing instanceof PackageDeclaration) {
                 return classDeclaration;

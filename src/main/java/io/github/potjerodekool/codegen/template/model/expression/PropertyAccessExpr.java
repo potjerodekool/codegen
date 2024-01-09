@@ -10,7 +10,7 @@ public class PropertyAccessExpr implements Expr {
         return target;
     }
 
-    public PropertyAccessExpr withTarget(final Expr target) {
+    public PropertyAccessExpr target(final Expr target) {
         this.target = target;
         return this;
     }
@@ -19,7 +19,7 @@ public class PropertyAccessExpr implements Expr {
         return name;
     }
 
-    public PropertyAccessExpr withName(final String name) {
+    public PropertyAccessExpr name(final String name) {
         this.name = name;
         return this;
     }

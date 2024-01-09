@@ -1,0 +1,1 @@
+ResponseEntity<? extends Object> someMethod();

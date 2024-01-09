@@ -10,9 +10,9 @@ import java.util.List;
 
 public class ClassOrInterfaceTypeExpression extends AbstractExpression implements TypeExpression {
 
-    private final Name name;
+    private Name name;
 
-    private final List<TypeExpression> typeArguments;
+    private List<TypeExpression> typeArguments;
 
     private boolean isNullable;
 
@@ -26,17 +26,24 @@ public class ClassOrInterfaceTypeExpression extends AbstractExpression implement
     }
 
     public ClassOrInterfaceTypeExpression(final Name name) {
-        this(name, new ArrayList<>());
+        this(name, null);
     }
 
     public ClassOrInterfaceTypeExpression(final Name name,
                                           final List<TypeExpression> typeArguments) {
         this.name = name;
-        this.typeArguments = typeArguments;
+        this.typeArguments = typeArguments != null
+                ? new ArrayList<>(typeArguments)
+                : null;
     }
 
     public Name getName() {
         return name;
+    }
+
+    public ClassOrInterfaceTypeExpression name(final Name name) {
+        this.name = name;
+        return this;
     }
 
     @Override
@@ -62,7 +69,18 @@ public class ClassOrInterfaceTypeExpression extends AbstractExpression implement
         return typeArguments;
     }
 
-    public void addTypeArgument(final TypeExpression typeArgument) {
+    public ClassOrInterfaceTypeExpression typeArgument(final TypeExpression typeArgument) {
+        if (this.typeArguments == null) {
+            this.typeArguments = new ArrayList<>();
+        }
         this.typeArguments.add(typeArgument);
+        return this;
+    }
+
+    public ClassOrInterfaceTypeExpression typeArguments(final TypeExpression... typeArguments) {
+        for (final TypeExpression typeArgument : typeArguments) {
+            typeArgument(typeArgument);
+        }
+        return this;
     }
 }

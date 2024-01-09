@@ -26,7 +26,7 @@ public class MethodElem extends AbstractElem<MethodElem> {
         return parameters;
     }
 
-    public MethodElem withParameter(final VariableElem parameter) {
+    public MethodElem parameter(final VariableElem parameter) {
         this.parameters.add(parameter);
         return this;
     }
@@ -35,7 +35,7 @@ public class MethodElem extends AbstractElem<MethodElem> {
         return returnType;
     }
 
-    public MethodElem withReturnType(final TypeExpr returnType) {
+    public MethodElem returnType(final TypeExpr returnType) {
         this.returnType = returnType;
         return this;
     }

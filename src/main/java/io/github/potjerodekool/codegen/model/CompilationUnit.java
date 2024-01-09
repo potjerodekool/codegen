@@ -3,6 +3,7 @@ package io.github.potjerodekool.codegen.model;
 import io.github.potjerodekool.codegen.Language;
 import io.github.potjerodekool.codegen.io.FileObject;
 import io.github.potjerodekool.codegen.model.element.*;
+import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.PackageDeclaration;
 import io.github.potjerodekool.codegen.model.tree.Tree;
 import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
@@ -15,11 +16,15 @@ public class CompilationUnit implements AstNode {
 
     private FileObject fileObject;
 
+    private PackageDeclaration packageDeclaration;
+
     private final List<Name> imports = new ArrayList<>();
 
     private final List<Tree> definitions = new ArrayList<>();
 
     private final Language language;
+
+    public ImportScope importScope;
 
     public CompilationUnit(final Language language) {
         this.language = language;
@@ -51,16 +56,13 @@ public class CompilationUnit implements AstNode {
     }
 
     public PackageDeclaration getPackageDeclaration() {
-        final var definition = !definitions.isEmpty() ? definitions.get(0) : null;
-        return definition instanceof PackageDeclaration packageDeclaration
-                ? packageDeclaration
-                : null;
+        return packageDeclaration;
     }
 
-    public <CD extends ClassDeclaration<CD>> List<ClassDeclaration<CD>> getClassDeclarations() {
+    public List<ClassDeclaration> getClassDeclarations() {
         return definitions.stream()
                 .filter(it -> it instanceof ClassDeclaration)
-                .map(it -> (ClassDeclaration<CD>) it)
+                .map(it -> (ClassDeclaration) it)
                 .toList();
     }
 
@@ -68,8 +70,19 @@ public class CompilationUnit implements AstNode {
         this.definitions.remove(definition);
     }
 
-    public void add(final Tree definition) {
-        this.definitions.add(definition);
+    public CompilationUnit packageDeclaration(final PackageDeclaration packageDeclaration) {
+        this.packageDeclaration = packageDeclaration;
+        return this;
+    }
+
+    public CompilationUnit classDeclaration(final ClassDeclaration classDeclaration) {
+        this.definitions.add(classDeclaration);
+        return this;
+    }
+
+    public CompilationUnit methodDeclaration(final MethodDeclaration methodDeclaration) {
+        this.definitions.add(methodDeclaration);
+        return this;
     }
 
     public <R, P> R accept(final CompilationUnitVisitor<R, P> visitor,

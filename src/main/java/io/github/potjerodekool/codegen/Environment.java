@@ -21,7 +21,11 @@ public class Environment {
 
     private final SymbolTable symbolTable;
 
-    private final Elements elements;
+    private final JavaElements javaElements;
+
+    private final KotlinElements kotlinElements;
+
+    private final JavaTypes javaTypes;
 
     private final KotlinTypes kotlinTypes;
 
@@ -33,23 +37,31 @@ public class Environment {
 
     public Environment(final URL[] classPath) {
         this.symbolTable = new SymbolTable();
-        final var javaTypes = new JavaTypes(symbolTable);
-        final var javaElements = new JavaElements(symbolTable, classPath, javaTypes);
-        this.elements = new KotlinElements(symbolTable, classPath, javaElements);
+        this.javaTypes = new JavaTypes(symbolTable);
+        this.javaElements = new JavaElements(symbolTable, classPath, javaTypes);
+        this.kotlinElements = new KotlinElements(symbolTable, classPath, javaElements);
         this.kotlinTypes = new KotlinTypes(javaTypes);
         this.fileManager = new FileManagerImpl();
-        this.filer = new FilerImpl(elements, kotlinTypes, fileManager);
+        this.filer = new FilerImpl(kotlinElements, kotlinTypes, fileManager);
     }
 
     public SymbolTable getSymbolTable() {
         return symbolTable;
     }
 
-    public Elements getElementUtils() {
-        return elements;
+    public JavaElements getJavaElements() {
+        return javaElements;
     }
 
-    public Types getTypes() {
+    public JavaTypes getJavaTypes() {
+        return javaTypes;
+    }
+
+    public KotlinElements getKotlinElements() {
+        return kotlinElements;
+    }
+
+    public KotlinTypes getKotlinTypes() {
         return kotlinTypes;
     }
 

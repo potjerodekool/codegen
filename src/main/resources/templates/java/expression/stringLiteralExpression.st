@@ -1,3 +1,0 @@
-stringLiteralExpression(stringLiteralExpression) ::= <%
-    "<stringLiteralExpression.value>"
-%>

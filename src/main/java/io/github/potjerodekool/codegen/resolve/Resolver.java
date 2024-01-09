@@ -13,9 +13,7 @@ import io.github.potjerodekool.codegen.model.symbol.PackageSymbol;
 import io.github.potjerodekool.codegen.model.symbol.VariableSymbol;
 import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
-import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
 import io.github.potjerodekool.codegen.model.tree.type.*;
 import io.github.potjerodekool.codegen.model.type.ClassType;
 import io.github.potjerodekool.codegen.model.type.ErrorTypeImpl;
@@ -70,7 +68,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
     }
 
     @Override
-    public Object visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final Scope scope) {
+    public Object visitClassDeclaration(final ClassDeclaration classDeclaration, final Scope scope) {
         //TODO remove if. Enter should be used.
         if (classDeclaration.getClassSymbol() == null) {
             var enclosing = classDeclaration.getEnclosing();
@@ -84,7 +82,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
                 enclosingElement = symbolTable.enterPackage(null, Name.of(packageDeclaration.getName().getName()));
                 nestingKind = NestingKind.TOP_LEVEL;
             } else {
-                enclosingElement = ((ClassDeclaration<?>) enclosing).getClassSymbol();
+                enclosingElement = ((ClassDeclaration) enclosing).getClassSymbol();
                 nestingKind = NestingKind.MEMBER;
             }
 
@@ -98,7 +96,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
             classSymbol.setType(classType);
 
             classSymbol.setNestingKind(nestingKind);
-            classDeclaration.setClassSymbol(classSymbol);
+            classDeclaration.classSymbol(classSymbol);
         }
 
         final var classSymbol = classDeclaration.getClassSymbol();
@@ -115,20 +113,10 @@ public class Resolver implements TreeVisitor<Object, Scope> {
         return null;
     }
 
-    private Scope getClassScope(final Tree tree) {
-        if (tree instanceof JClassDeclaration classDeclaration) {
-            return classDeclaration.getClassSymbol().members();
-        } else if (tree instanceof JMethodDeclaration methodDeclaration) {
-            return getClassScope(methodDeclaration.getEnclosing());
-        } else {
-            return null;
-        }
-    }
-
     private Scope findScope(final Tree tree) {
-        if (tree instanceof MethodDeclaration<?> methodDeclaration) {
+        if (tree instanceof MethodDeclaration methodDeclaration) {
             return methodDeclaration.getMethodSymbol().scope;
-        } else if (tree instanceof ClassDeclaration<?> classDeclaration) {
+        } else if (tree instanceof ClassDeclaration classDeclaration) {
             return classDeclaration.getClassSymbol().scope;
         } else {
             throw new UnsupportedOperationException("Unsupported tree: " + tree);
@@ -137,7 +125,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
 
 
     @Override
-    public Object visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration, final Scope scope) {
+    public Object visitMethodDeclaration(final MethodDeclaration methodDeclaration, final Scope scope) {
         final var methodScope = findScope(methodDeclaration);
 
         methodDeclaration.getReturnType().accept(this, methodScope);
@@ -159,13 +147,13 @@ public class Resolver implements TreeVisitor<Object, Scope> {
         methodSymbol.addModifiers(methodDeclaration.getModifiers());
         methodSymbol.addParameters(parameters);
 
-        methodDeclaration.setMethodSymbol(methodSymbol);
+        methodDeclaration.methodSymbol(methodSymbol);
 
         return null;
     }
 
     @Override
-    public Object visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final Scope scope) {
+    public Object visitVariableDeclaration(final VariableDeclaration variableDeclaration, final Scope scope) {
         variableDeclaration.getVarType().accept(this, scope);
         variableDeclaration.getInitExpression().ifPresent(it -> it.accept(this, scope));
 
@@ -179,7 +167,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
                     variableDeclaration.getName()
             );
             variableSymbol.addModifiers(variableDeclaration.getModifiers());
-            variableDeclaration.setSymbol(variableSymbol);
+            variableDeclaration.symbol(variableSymbol);
         }
 
         variableSymbol.setType(variableDeclaration.getVarType().getType());
@@ -234,7 +222,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
     @Override
     public Object visitAnnotatedType(final AnnotatedTypeExpression annotatedTypeExpression, final Scope scope) {
         annotatedTypeExpression.getIdentifier().accept(this, scope);
-        annotatedTypeExpression.setType(annotatedTypeExpression.getIdentifier().getType());
+        annotatedTypeExpression.type(annotatedTypeExpression.getIdentifier().getType());
         return null;
     }
 
@@ -255,22 +243,32 @@ public class Resolver implements TreeVisitor<Object, Scope> {
     public Object visitClassOrInterfaceTypeExpression(final ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression, final Scope scope) {
         final var name = classOrInterfaceTypeExpression.getName();
         final var typeElement = classFinder.findClass(name, scope);
+        final var typeArguments = classOrInterfaceTypeExpression.getTypeArguments();
 
-        classOrInterfaceTypeExpression.getTypeArguments().forEach(typeArg -> typeArg.accept(this, scope));
+        if (typeArguments != null) {
+            typeArguments.forEach(typeArg -> typeArg.accept(this, scope));
+        }
 
         if (typeElement != null) {
-            final var typeArgs = classOrInterfaceTypeExpression.getTypeArguments().stream()
-                    .map(Tree::getType)
-                            .toArray(TypeMirror[]::new);
+            final TypeMirror[] typeArgs;
+
+            if (typeArguments != null) {
+                typeArgs = typeArguments.stream()
+                        .map(Tree::getType)
+                        .toArray(TypeMirror[]::new);
+            } else {
+                typeArgs = new TypeMirror[0];
+            }
+
             var type = types.getDeclaredType(typeElement, typeArgs);
             type = classOrInterfaceTypeExpression.isNullable()
                     ? type.asNullableType()
                     : type.asNonNullableType();
-            classOrInterfaceTypeExpression.setType(type);
+            classOrInterfaceTypeExpression.type(type);
         } else {
             final var qualifiedName =  name.getValue().toString();
             final var classSymbol = createErrorType(qualifiedName);
-            classOrInterfaceTypeExpression.setType(classSymbol.asType());
+            classOrInterfaceTypeExpression.type(classSymbol.asType());
             reportError("cannot find symbol. Symbol: class " + name);
         }
 
@@ -304,21 +302,21 @@ public class Resolver implements TreeVisitor<Object, Scope> {
     @Override
     public Object visitNoType(final NoTypeExpression noTypeExpression, final Scope scope) {
         final var type = types.getNoType(noTypeExpression.getKind());
-        noTypeExpression.setType(type);
+        noTypeExpression.type(type);
         return null;
     }
 
     @Override
     public Object visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression, final Scope scope) {
         final var type = types.getPrimitiveType(primitiveTypeExpression.getKind());
-        primitiveTypeExpression.setType(type);
+        primitiveTypeExpression.type(type);
         return null;
     }
 
     @Override
     public Object visitAnnotationExpression(final AnnotationExpression annotationExpression, final Scope scope) {
         annotationExpression.getAnnotationType().accept(this, scope);
-        annotationExpression.setType(annotationExpression.getAnnotationType().getType());
+        annotationExpression.type(annotationExpression.getAnnotationType().getType());
         annotationExpression.getArguments().values().forEach(value -> value.accept(this, scope));
         return null;
     }
@@ -339,7 +337,8 @@ public class Resolver implements TreeVisitor<Object, Scope> {
                 final var classLiteralExpression = (ClassLiteralExpression) literalExpression;
 
                 if (classLiteralExpression.getClazz() instanceof PrimitiveTypeExpression primitiveTypeExpression) {
-                    yield types.getPrimitiveType(primitiveTypeExpression.getKind());
+                    primitiveTypeExpression.accept(this, scope);
+                    yield primitiveTypeExpression.getType();
                 } else {
                     final var clazz = classLiteralExpression.getClazz();
                     final Name className;
@@ -361,7 +360,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
             }
             case CHAR -> types.getPrimitiveType(TypeKind.CHAR);
         };
-        literalExpression.setType(type);
+        literalExpression.type(type);
 
         return null;
     }
@@ -374,6 +373,9 @@ public class Resolver implements TreeVisitor<Object, Scope> {
 
     @Override
     public Object visitNewClassExpression(final NewClassExpression newClassExpression, final Scope scope) {
+        newClassExpression.getClazz().accept(this, scope);
+        newClassExpression.getArguments().forEach(it -> it.accept(this, scope));
+        newClassExpression.type(newClassExpression.getClazz().getType());
         return null;
     }
 
@@ -400,7 +402,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
         }
 
         final var wildCardType = types.getWildcardType(extendsType, superType);
-        wildCardTypeExpression.setType(wildCardType);
+        wildCardTypeExpression.type(wildCardType);
         return null;
     }
 
@@ -412,7 +414,7 @@ public class Resolver implements TreeVisitor<Object, Scope> {
     @Override
     public Object visitArrayTypeExpresion(final ArrayTypeExpression arrayTypeExpression, final Scope scope) {
         arrayTypeExpression.getComponentTypeExpression().accept(this, scope);
-        arrayTypeExpression.setType(types.getArrayType(arrayTypeExpression.getComponentTypeExpression().getType()));
+        arrayTypeExpression.type(types.getArrayType(arrayTypeExpression.getComponentTypeExpression().getType()));
         return null;
     }
 }

@@ -18,7 +18,7 @@ public class ArrayExpr implements Expr {
         return componentType;
     }
 
-    public ArrayExpr withComponentType(final TypeExpr componentType) {
+    public ArrayExpr componentType(final TypeExpr componentType) {
         this.componentType = componentType;
         return this;
     }
@@ -27,17 +27,17 @@ public class ArrayExpr implements Expr {
         return values;
     }
 
-    public ArrayExpr withValue(final Expr value) {
+    public ArrayExpr value(final Expr value) {
         this.values.add(value);
         return this;
     }
 
-    public ArrayExpr withValues(final Expr... values) {
+    public ArrayExpr values(final Expr... values) {
         this.values.addAll(List.of(values));
         return this;
     }
 
-    public ArrayExpr withValues(final List<Expr> values) {
+    public ArrayExpr values(final List<Expr> values) {
         this.values.addAll(values);
         return this;
     }

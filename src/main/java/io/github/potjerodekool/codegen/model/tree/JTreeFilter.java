@@ -1,9 +1,8 @@
 package io.github.potjerodekool.codegen.model.tree;
 
 import io.github.potjerodekool.codegen.model.element.ElementKind;
-import io.github.potjerodekool.codegen.model.tree.java.JMethodDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JClassDeclaration;
-import io.github.potjerodekool.codegen.model.tree.statement.java.JVariableDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.ClassDeclaration;
+import io.github.potjerodekool.codegen.model.tree.statement.VariableDeclaration;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -13,28 +12,28 @@ public class JTreeFilter {
     private JTreeFilter() {
     }
 
-    public static List<JMethodDeclaration> constructors(final JClassDeclaration classDeclaration) {
+    public static List<MethodDeclaration> constructors(final ClassDeclaration classDeclaration) {
         return filterEnclosed(
                 classDeclaration,
                 methodDeclaration -> methodDeclaration.getKind() == ElementKind.CONSTRUCTOR,
-                JMethodDeclaration.class);
+                MethodDeclaration.class);
     }
 
-    public static List<JMethodDeclaration> methods(final JClassDeclaration classDeclaration) {
+    public static List<MethodDeclaration> methods(final ClassDeclaration classDeclaration) {
         return filterEnclosed(
                 classDeclaration,
                 methodDeclaration -> methodDeclaration.getKind() == ElementKind.METHOD,
-                JMethodDeclaration.class);
+                MethodDeclaration.class);
     }
 
-    public static List<JVariableDeclaration> fields(final JClassDeclaration classDeclaration) {
+    public static List<VariableDeclaration> fields(final ClassDeclaration classDeclaration) {
         return filterEnclosed(
                 classDeclaration,
                 variableDeclaration -> variableDeclaration.getKind() == ElementKind.FIELD,
-                JVariableDeclaration.class);
+                VariableDeclaration.class);
     }
 
-    private static <E extends Tree> List<E> filterEnclosed(final JClassDeclaration classDeclaration,
+    private static <E extends Tree> List<E> filterEnclosed(final ClassDeclaration classDeclaration,
                                                            final Predicate<E> predicate,
                                                            final Class<E> clazz) {
         return classDeclaration.getEnclosed().stream()

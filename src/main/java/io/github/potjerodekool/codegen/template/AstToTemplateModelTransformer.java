@@ -4,11 +4,16 @@ import io.github.potjerodekool.codegen.model.CompilationUnit;
 import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.tree.AnnotationExpression;
 import io.github.potjerodekool.codegen.model.tree.MethodDeclaration;
+import io.github.potjerodekool.codegen.model.tree.Tree;
 import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
-import io.github.potjerodekool.codegen.model.tree.type.ClassOrInterfaceTypeExpression;
-import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
+import io.github.potjerodekool.codegen.model.tree.type.*;
+import io.github.potjerodekool.codegen.model.type.ArrayType;
+import io.github.potjerodekool.codegen.model.type.ClassType;
+import io.github.potjerodekool.codegen.model.type.PrimitiveType;
+import io.github.potjerodekool.codegen.model.type.TypeKind;
+import io.github.potjerodekool.codegen.template.model.TCompilationUnit;
 import io.github.potjerodekool.codegen.template.model.annotation.Annot;
 import io.github.potjerodekool.codegen.template.model.element.Elem;
 import io.github.potjerodekool.codegen.template.model.element.MethodElem;
@@ -18,48 +23,54 @@ import io.github.potjerodekool.codegen.template.model.expression.*;
 import io.github.potjerodekool.codegen.template.model.statement.*;
 
 public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object> {
-    public io.github.potjerodekool.codegen.template.model.CompilationUnit transform(final CompilationUnit cu) {
-        final var unit = new io.github.potjerodekool.codegen.template.model.CompilationUnit(cu.getLanguage());
-        unit.withPackageName(cu.getPackageDeclaration().getName().getName());
+    public TCompilationUnit transform(final CompilationUnit cu) {
+        final var unit = new TCompilationUnit(cu.getLanguage());
+        unit.packageName(cu.getPackageDeclaration().getName().getName());
 
         cu.getClassDeclarations().stream()
                 .map(classDeclaration -> classDeclaration.accept(this, null))
                 .map(it -> (TypeElem)it)
-                .forEach(unit::withElement);
+                .forEach(unit::element);
 
         return unit;
     }
 
     @Override
-    public Object visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final Object param) {
-
-
+    public Object visitClassDeclaration(final ClassDeclaration classDeclaration, final Object param) {
         final var typeElement = new TypeElem()
-                .withKind(classDeclaration.getKind())
-                .withModifiers(classDeclaration.getModifiers())
-                .withSimpleName(classDeclaration.getSimpleName().toString());
+                .kind(classDeclaration.getKind())
+                .modifiers(classDeclaration.getModifiers())
+                .simpleName(classDeclaration.getSimpleName().toString());
+
+        final var interfaces = classDeclaration.getImplementing().stream()
+                .map(typeExpr -> (ClassOrInterfaceTypeExpr) typeExpr.accept(this, param))
+                .toList();
+
+        if (classDeclaration.getKind() == ElementKind.CLASS) {
+            interfaces.forEach(typeElement::implement);
+        }
 
         classDeclaration.getAnnotations().stream()
                         .map(annotationExpression -> (Annot) annotationExpression.accept(this, param))
-                        .forEach(typeElement::withAnnotation);
+                        .forEach(typeElement::annotation);
 
         classDeclaration.getEnclosed().stream()
                 .map(e -> (Elem<?>) e.accept(this, param))
-                .forEach(typeElement::withEnclosedElement);
+                .forEach(typeElement::enclosedElement);
         return typeElement;
     }
 
     @Override
-    public Object visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration, final Object param) {
+    public Object visitMethodDeclaration(final MethodDeclaration methodDeclaration, final Object param) {
         final var methodElement = new MethodElem()
-                .withKind(methodDeclaration.getKind())
-                .withModifiers(methodDeclaration.getModifiers())
-                .withSimpleName(methodDeclaration.getSimpleName().toString())
-                .withReturnType((TypeExpr) methodDeclaration.getReturnType().accept(this, param));
+                .kind(methodDeclaration.getKind())
+                .modifiers(methodDeclaration.getModifiers())
+                .simpleName(methodDeclaration.getSimpleName().toString())
+                .returnType((TypeExpr) methodDeclaration.getReturnType().accept(this, param));
 
         methodDeclaration.getParameters().stream()
                 .map(methodParam -> (VariableElem) methodParam.accept(this, param))
-                .forEach(methodElement::withParameter );
+                .forEach(methodElement::parameter );
 
         methodDeclaration.getBody().ifPresent(body -> {
             final var methodBody = (BlockStm) body.accept(this, param);
@@ -70,11 +81,15 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
     }
 
     @Override
-    public Object visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final Object param) {
+    public Object visitVariableDeclaration(final VariableDeclaration variableDeclaration, final Object param) {
         final var type = (TypeExpr) variableDeclaration.getVarType().accept(this, param);
         final var initExpr = variableDeclaration.getInitExpression()
                 .map(initExpression -> (Expr) initExpression.accept(this, param))
                 .orElse(null);
+
+        final var annotations = variableDeclaration.getAnnotations().stream()
+                .map(annotationExpression -> (Annot) annotationExpression.accept(this, param))
+                .toList();
 
         if (variableDeclaration.getKind() == ElementKind.LOCAL_VARIABLE) {
             return new VariableDeclarationStm()
@@ -83,26 +98,39 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
                     .identifier(variableDeclaration.getName())
                     .initExpression(initExpr);
         } else {
+            final var variable = new VariableElem()
+                    .kind(variableDeclaration.getKind())
+                    .modifiers(variableDeclaration.getModifiers())
+                    .type(type)
+                    .simpleName(variableDeclaration.getName())
+                    .initExpression(initExpr);
 
-            return new VariableElem()
-                    .withKind(variableDeclaration.getKind())
-                    .withType(type)
-                    .withSimpleName(variableDeclaration.getName())
-                    .withModifiers(variableDeclaration.getModifiers());
+            annotations.forEach(variable::annotation);
+
+            return variable;
         }
     }
 
     @Override
     public Object visitClassOrInterfaceTypeExpression(final ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression, final Object param) {
-        return new ClassOrInterfaceTypeExpr(classOrInterfaceTypeExpression.getName().toString());
+        final var clasType = new ClassOrInterfaceTypeExpr(classOrInterfaceTypeExpression.getName().toString());
+
+        if (classOrInterfaceTypeExpression.getTypeArguments() != null) {
+            classOrInterfaceTypeExpression.getTypeArguments().stream()
+                    .map(typeExpr -> (TypeExpr) typeExpr.accept(this, param))
+                    .forEach(clasType::typeArgument);
+        }
+
+        return clasType;
     }
 
     @Override
     public Object visitNoType(final NoTypeExpression noTypeExpression, final Object param) {
-        return switch (noTypeExpression.getKind()) {
-            case VOID -> new SimpleTypeExpr("void");
-            default -> throw new UnsupportedOperationException("Unsupported type: " + noTypeExpression.getKind());
-        };
+        if (noTypeExpression.getKind() == TypeKind.VOID) {
+            return new SimpleTypeExpr("void");
+        } else {
+            throw new UnsupportedOperationException("Unsupported type: " + noTypeExpression.getKind());
+        }
     }
 
     @Override
@@ -111,7 +139,7 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
 
         annotationExpression.getArguments().forEach((name, value) -> {
             final var annotValue = (Expr) value.accept(this, param);
-            annot.withValue(name, annotValue);
+            annot.value(name, annotValue);
         });
 
         return annot;
@@ -119,11 +147,47 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
 
     @Override
     public Object visitLiteralExpression(final LiteralExpression literalExpression, final Object param) {
-        return switch (literalExpression.getLiteralType()) {
-            case STRING -> new StringLiteralExpr(((StringValueLiteralExpression) literalExpression).getValue());
-            default -> throw new UnsupportedOperationException("Unsupported literal type: " + literalExpression.getLiteralType());
-        };
+        if (literalExpression instanceof StringValueLiteralExpression stringValueLiteralExpression) {
+            return createLiteralExpression(stringValueLiteralExpression);
+        } else if (literalExpression instanceof ClassLiteralExpression classLiteralExpression) {
+            return createClassLiteralExp(classLiteralExpression);
+        } else {
+            throw new UnsupportedOperationException("Unsupported literal type: " + literalExpression.getClass());
+        }
     }
+
+    private SimpleLiteralExpr createLiteralExpression(final StringValueLiteralExpression stringValueLiteralExpression) {
+        final var value = switch (stringValueLiteralExpression.getLiteralType()) {
+            case NULL -> null;
+            case BOOLEAN -> Boolean.parseBoolean(stringValueLiteralExpression.getValue());
+            case BYTE -> Byte.parseByte(stringValueLiteralExpression.getValue());
+            case SHORT -> Short.parseShort(stringValueLiteralExpression.getValue());
+            case INT -> Integer.parseInt(stringValueLiteralExpression.getValue());
+            case LONG -> Long.parseLong(stringValueLiteralExpression.getValue());
+            case FLOAT -> Float.parseFloat(stringValueLiteralExpression.getValue());
+            case DOUBLE -> Double.parseDouble(stringValueLiteralExpression.getValue());
+            case STRING -> stringValueLiteralExpression.getValue();
+            case CHAR -> stringValueLiteralExpression.getValue().charAt(0);
+            default -> throw new UnsupportedOperationException("Unsupported literal type: " + stringValueLiteralExpression.getLiteralType());
+        };
+
+        return new SimpleLiteralExpr(value);
+    }
+
+    private ClassLiteralExpr createClassLiteralExp(final ClassLiteralExpression classLiteralExpression) {
+        final var clazz = classLiteralExpression.getClazz();
+        final String className;
+
+        if (clazz instanceof ClassOrInterfaceTypeExpression classOrInterfaceTypeExpression) {
+            className = classOrInterfaceTypeExpression.getName().toString();
+        } else if (clazz instanceof PrimitiveTypeExpression primitiveTypeExpression) {
+            className = getPrimitiveTypeName((PrimitiveType) primitiveTypeExpression.getType());
+        } else {
+            throw new UnsupportedOperationException();
+        }
+        return new ClassLiteralExpr(className);
+    }
+
 
     @Override
     public Object visitBlockStatement(final BlockStatement blockStatement, final Object param) {
@@ -195,8 +259,8 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
     public Object visitPropertyAccessExpression(final PropertyAccessExpression propertyAccessExpression, final Object param) {
         final var target = (Expr) propertyAccessExpression.getTarget().accept(this, param);
         return new PropertyAccessExpr()
-                .withTarget(target)
-                .withName(propertyAccessExpression.getName().getName());
+                .target(target)
+                .name(propertyAccessExpression.getName().getName());
     }
 
     @Override
@@ -205,6 +269,74 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
                 .map(value -> (Expr) value.accept(this, param))
                 .toList();
         return new ArrayExpr()
-                .withValues(values);
+                .values(values);
+    }
+
+    @Override
+    public Object visitFieldAccessExpression(final FieldAccessExpression fieldAccessExpression, final Object param) {
+        final var target = (Expr) accept(fieldAccessExpression.getScope(), param);
+        final var field = new IdentifierExpr(fieldAccessExpression.getField().toString());
+        return new FieldAccessExpr()
+                .target(target)
+                .field(field);
+    }
+
+    @Override
+    public Object visitArrayTypeExpresion(final ArrayTypeExpression arrayTypeExpression, final Object param) {
+        final var type = (ClassType) ((ArrayType) arrayTypeExpression.getType()).getComponentType();
+        return new SimpleTypeExpr(type.asElement().getQualifiedName() + "[]");
+    }
+
+    @Override
+    public Object visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression, final Object param) {
+        final var type = (PrimitiveType) primitiveTypeExpression.getType();
+        return new SimpleTypeExpr(getPrimitiveTypeName(type));
+    }
+
+    private String getPrimitiveTypeName(final PrimitiveType type) {
+        return switch (type.getKind()) {
+            case BOOLEAN -> "boolean";
+            case INT -> "int";
+            case BYTE -> "byte";
+            case SHORT -> "short";
+            case LONG -> "long";
+            case CHAR -> "char";
+            case FLOAT -> "float";
+            case DOUBLE -> "double";
+            default -> throw new UnsupportedOperationException("Unsupported primitive type: " + type.getKind());
+        };
+    }
+
+    @Override
+    public Object visitNewClassExpression(final NewClassExpression newClassExpression, final Object param) {
+        final var type = (ClassType) newClassExpression.getClazz().getType();
+        final var className = type.asElement().getQualifiedName();
+        final var arguments = newClassExpression.getArguments().stream()
+                .map(argument -> (Expr) argument.accept(this, param))
+                .toList();
+
+        return new NewClassExpr()
+                .name(className.toString())
+                .arguments(arguments);
+    }
+
+    @Override
+    public Object visitWildCardTypeExpression(final WildCardTypeExpression wildCardTypeExpression, final Object param) {
+        final var expr = (Expr) wildCardTypeExpression.getTypeExpression().accept(this, param);
+
+        return new WildCardTypeExpr()
+                .boundKind(wildCardTypeExpression.getBoundKind())
+                .expr(expr);
+    }
+
+    @Override
+    public Object visitVarTypeExpression(final VarTypeExpression varTypeExpression, final Object param) {
+        return new SimpleTypeExpr("var");
+    }
+
+    private <T> T accept(final Tree tree, final Object param) {
+        return tree != null
+                ? (T) tree.accept(this, param)
+                : null;
     }
 }

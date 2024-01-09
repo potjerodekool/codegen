@@ -33,8 +33,9 @@ public class PropertyAccessExpression extends AbstractExpression {
     }
 
     @Override
-    public void setType(final TypeMirror type) {
+    public PropertyAccessExpression type(final TypeMirror type) {
         this.type = type;
+        return this;
     }
 
     @Override

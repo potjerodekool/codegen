@@ -18,35 +18,35 @@ public interface Elem<E extends Elem<E>> {
 
     Elem<?> getEnclosingElement();
 
-    E withEnclosingElement(Elem<?> enclosingElement);
+    E enclosingElement(Elem<?> enclosingElement);
 
     List<Elem<?>> getEnclosedElements();
 
-    E withEnclosedElement(Elem<?> enclosedElement);
+    E enclosedElement(Elem<?> enclosedElement);
 
-    E withEnclosedElements(List<Elem<?>> enclosedElements);
+    E enclosedElements(List<Elem<?>> enclosedElements);
 
     Set<Modifier> getModifiers();
 
-    E withModifier(Modifier modifier);
+    E modifier(Modifier modifier);
 
-    default E withModifiers(final Modifier... modifiers) {
+    default E modifiers(final Modifier... modifiers) {
         for (final Modifier modifier : modifiers) {
-            withModifier(modifier);
+            modifier(modifier);
         }
         return (E) this;
     }
 
-    default E withModifiers(final Collection<Modifier> modifiers) {
-        modifiers.forEach(this::withModifier);
+    default E modifiers(final Collection<Modifier> modifiers) {
+        modifiers.forEach(this::modifier);
         return (E) this;
     }
 
-    E withAnnotation(Annot a);
+    E annotation(Annot a);
 
-    default E withAnnotations(final Annot... annotations) {
+    default E annotations(final Annot... annotations) {
         for (Annot annotation : annotations) {
-            withAnnotation(annotation);
+            annotation(annotation);
         }
         return (E) this;
     }

@@ -7,6 +7,8 @@ element(element) ::= <%
 </java/element/method(element)>
 <elseif(element.kind.isMETHOD)>
 </java/element/method(element)>
+<elseif(element.kind.isFIELD)>
+</java/element/field(element)>
 <else>
 <element.kind>
 <endif>

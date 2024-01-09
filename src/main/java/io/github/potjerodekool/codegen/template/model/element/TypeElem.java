@@ -1,16 +1,31 @@
 package io.github.potjerodekool.codegen.template.model.element;
 
 import io.github.potjerodekool.codegen.model.element.ElementKind;
+import io.github.potjerodekool.codegen.template.model.expression.ClassOrInterfaceTypeExpr;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TypeElem extends AbstractElem<TypeElem> {
 
+    private List<ClassOrInterfaceTypeExpr> implementing = new ArrayList<>();
+
     public MethodElem createConstructor() {
         final var constructor = new MethodElem()
-                .withSimpleName(getSimpleName())
-                .withKind(ElementKind.CONSTRUCTOR);
+                .simpleName(getSimpleName())
+                .kind(ElementKind.CONSTRUCTOR);
 
-        withEnclosedElement(constructor);
+        enclosedElement(constructor);
         return constructor;
+    }
+
+    public List<ClassOrInterfaceTypeExpr> getImplementing() {
+        return implementing;
+    }
+
+    public TypeElem implement(final ClassOrInterfaceTypeExpr typeExpr) {
+        implementing.add(typeExpr);
+        return this;
     }
 
     @Override

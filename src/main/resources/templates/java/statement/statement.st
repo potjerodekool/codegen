@@ -1,15 +1,15 @@
-statement(statement) ::= <<
+statement(statement) ::= <%
 <if(statement.kind.isBLOCK)>
-    <statement.statements:{subStatement |   </java/statement/statement(subStatement)>}>
+<\t><statement.statements:{subStatement | </java/statement/statement(subStatement)>};separator="\n">
 <elseif(statement.kind.isVARIABLE_DECLARATION)>
-    </java/statement/varDeclarationStatement(statement)>;
+<\t></java/statement/varDeclarationStatement(statement)>;
 <elseif(statement.kind.isIF)>
-    </java/statement/ifStatement(statement)>
+<\t></java/statement/ifStatement(statement)>
 <elseif(statement.kind.isRETURN)>
-    </java/statement/returnStatement(statement)>;
+<\t></java/statement/returnStatement(statement)>;
 <elseif(statement.kind.isSTATEMENT_EXPRESSION)>
-    </java/statement/statementExpresion(statement)>;
+<\t></java/statement/statementExpresion(statement)>;
 <else>
-    unnknown statement <statement.kind>
+<\t>unnknown statement <statement.kind>
 <endif>
->>
+%>

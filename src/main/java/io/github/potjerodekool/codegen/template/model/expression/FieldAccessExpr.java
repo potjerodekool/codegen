@@ -15,7 +15,7 @@ public class FieldAccessExpr implements Expr {
         return target;
     }
 
-    public FieldAccessExpr withTarget(final Expr target) {
+    public FieldAccessExpr target(final Expr target) {
         this.target = target;
         return this;
     }
@@ -24,7 +24,7 @@ public class FieldAccessExpr implements Expr {
         return field;
     }
 
-    public FieldAccessExpr withField(final Expr field) {
+    public FieldAccessExpr field(final Expr field) {
         this.field = field;
         return this;
     }

@@ -10,7 +10,8 @@ public class TypeParameter implements Tree {
     }
 
     @Override
-    public void setType(final TypeMirror type) {
+    public TypeParameter type(final TypeMirror type) {
+        return this;
     }
 
     @Override

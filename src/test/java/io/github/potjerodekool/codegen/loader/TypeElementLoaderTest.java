@@ -21,7 +21,7 @@ class TypeElementLoaderTest {
         classPath.add(url);
 
         var environment = new Environment(classPath.toArray(new URL[0]));
-        final var element = environment.getElementUtils().getTypeElement("io.swagger.v3.oas.annotations.media.Schema.RequiredMode");
+        final var element = environment.getKotlinElements().getTypeElement("io.swagger.v3.oas.annotations.media.Schema.RequiredMode");
         assertNotNull(element);
     }
 

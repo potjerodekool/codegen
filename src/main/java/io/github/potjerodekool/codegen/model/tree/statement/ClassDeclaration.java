@@ -6,24 +6,34 @@ import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.tree.*;
 import io.github.potjerodekool.codegen.model.tree.expression.Expression;
+import io.github.potjerodekool.codegen.model.tree.type.NoTypeExpression;
+import io.github.potjerodekool.codegen.model.type.TypeKind;
 
 import java.util.*;
+import java.util.function.Consumer;
 
-public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends AbstractStatement implements WithMetaData {
+public class ClassDeclaration extends AbstractStatement implements WithMetaData {
 
-    private final Name simpleName;
+    private Name simpleName;
+    private ElementKind kind;
+    private final Set<Modifier> modifiers = new LinkedHashSet<>();
 
     private final List<Tree> enclosed = new ArrayList<>();
     private Tree enclosing;
     private final List<AnnotationExpression> annotations = new ArrayList<>();
 
-    private MethodDeclaration<?> primaryConstructor;
+    private MethodDeclaration primaryConstructor;
 
     private Expression extending;
 
     private final List<Expression> implementing = new ArrayList<>();
 
     private final Map<String, Object> metaData = new HashMap<>();
+
+    private ClassSymbol classSymbol;
+
+    public ClassDeclaration() {
+    }
 
     public ClassDeclaration(final CharSequence simpleName) {
         this.simpleName = Name.of(simpleName);
@@ -38,12 +48,17 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
         return simpleName;
     }
 
+    public ClassDeclaration simpleName(final Name simpleName) {
+        this.simpleName = simpleName;
+        return this;
+    }
+
     public Name getQualifiedName() {
         return qualifiedNameOf(this);
     }
 
     private Name qualifiedNameOf(final Tree tree) {
-        if (tree instanceof ClassDeclaration<?> classDeclaration) {
+        if (tree instanceof ClassDeclaration classDeclaration) {
             final var enclosing = getEnclosing();
 
             if (enclosing == null) {
@@ -59,9 +74,42 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
         }
     }
 
-    public abstract ElementKind getKind();
+    public ElementKind getKind() {
+        return this.kind;
+    }
 
-    public abstract Set<Modifier> getModifiers();
+    public ClassDeclaration kind(final ElementKind kind) {
+        this.kind = kind;
+        return this;
+    }
+
+    public Set<Modifier> getModifiers() {
+        return this.modifiers;
+    }
+
+    public ClassDeclaration modifier(final Modifier modifier) {
+        this.modifiers.add(modifier);
+        return this;
+    }
+
+    public ClassDeclaration modifiers(final Modifier... modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
+        return this;
+    }
+
+    public ClassDeclaration modifiers(final Collection<Modifier> modifiers) {
+        for (final Modifier modifier : modifiers) {
+            modifier(modifier);
+        }
+        return this;
+    }
+
+    public ClassDeclaration removeModifier(final Modifier modifier) {
+        this.modifiers.remove(modifier);
+        return this;
+    }
 
     public List<Tree> getEnclosed() {
         return enclosed;
@@ -69,6 +117,38 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
 
     public void removeEnclosed(final Tree tree) {
         this.enclosed.remove(tree);
+    }
+
+    public ClassDeclaration constructor(final Consumer<MethodDeclaration> methodBuilder) {
+        final var method = createConstructor();
+        methodBuilder.accept(method);
+        return this;
+    }
+
+    public MethodDeclaration createConstructor() {
+        final var method = new MethodDeclaration()
+                .kind(ElementKind.CONSTRUCTOR)
+                .simpleName(getSimpleName())
+                .returnType(new NoTypeExpression(TypeKind.VOID));
+        addEnclosed(method);
+        method.setEnclosing(this);
+        return method;
+    }
+
+    public ClassDeclaration method(final Consumer<MethodDeclaration> methodBuilder) {
+        final var method = new MethodDeclaration()
+                .kind(ElementKind.METHOD);
+        method.setEnclosing(this);
+        methodBuilder.accept(method);
+        addEnclosed(method);
+        return this;
+    }
+
+    public MethodDeclaration createMethod() {
+        final var method = new MethodDeclaration().kind(ElementKind.METHOD);
+        addEnclosed(method);
+        method.setEnclosing(this);
+        return method;
     }
 
     public void addEnclosed(final Tree child) {
@@ -96,20 +176,20 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
         return annotations;
     }
 
-    public CD annotation(final String className) {
+    public ClassDeclaration annotation(final String className) {
         return annotation(new AnnotationExpression(className));
     }
 
-    public CD annotation(final AnnotationExpression annotationExpression) {
+    public ClassDeclaration annotation(final AnnotationExpression annotationExpression) {
         this.annotations.add(annotationExpression);
-        return (CD) this;
+        return this;
     }
 
-    public MethodDeclaration<?> getPrimaryConstructor() {
+    public MethodDeclaration getPrimaryConstructor() {
         return primaryConstructor;
     }
 
-    public void setPrimaryConstructor(final MethodDeclaration<?> primaryConstructor) {
+    public void setPrimaryConstructor(final MethodDeclaration primaryConstructor) {
         this.primaryConstructor = primaryConstructor;
     }
 
@@ -129,18 +209,18 @@ public abstract class ClassDeclaration<CD extends ClassDeclaration<CD>> extends 
         this.implementing.add(expression);
     }
 
-    public abstract ClassSymbol getClassSymbol();
-
-    public abstract void setClassSymbol(ClassSymbol classSymbol);
-
-    public abstract List<? extends MethodDeclaration<?>> constructors();
-
-    public abstract List<? extends MethodDeclaration<?>> methods();
-
-    public abstract List<? extends VariableDeclaration<?>> fields();
+    public ClassSymbol getClassSymbol() {
+        return classSymbol;
+    }
 
     @Override
     public <R, P> R accept(final TreeVisitor<R, P> visitor, final P param) {
         return visitor.visitClassDeclaration(this, param);
     }
+
+    public ClassDeclaration classSymbol(final ClassSymbol classSymbol) {
+        this.classSymbol = classSymbol;
+        return this;
+    }
+
 }

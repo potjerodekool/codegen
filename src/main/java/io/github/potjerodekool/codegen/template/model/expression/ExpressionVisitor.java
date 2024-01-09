@@ -12,7 +12,7 @@ public interface ExpressionVisitor<P, R> {
 
     R visitUnaryExpression(UnaryExpr unaryExpression, P p);
 
-    <T> R visitLiteralExpression(LiteralExpr<?> tLiteralExpression, P p);
+    R visitLiteralExpression(LiteralExpr tLiteralExpression, P p);
 
     R visitArrayExpression(ArrayExpr arrayExpression, P p);
 
@@ -21,4 +21,6 @@ public interface ExpressionVisitor<P, R> {
     R visitTypeExpression(SimpleTypeExpr simpleTypeExpr, P p);
 
     R visitFieldAccessExpression(FieldAccessExpr fieldAccessExpr, P p);
+
+    R visitNewClassExpression(NewClassExpr newClassExpr, P p);
 }

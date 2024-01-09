@@ -31,7 +31,7 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
         return simpleName;
     }
 
-    public E withSimpleName(final String simpleName) {
+    public E simpleName(final String simpleName) {
         this.simpleName = simpleName;
         return (E) this;
     }
@@ -41,7 +41,7 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
         return kind;
     }
 
-    public E withKind(final ElementKind kind) {
+    public E kind(final ElementKind kind) {
         this.kind = kind;
         return (E) this;
     }
@@ -52,7 +52,7 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
     }
 
     @Override
-    public E withEnclosingElement(final Elem<?> element) {
+    public E enclosingElement(final Elem<?> element) {
         this.enclosingElement = element;
         return (E) this;
     }
@@ -63,13 +63,13 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
     }
 
     @Override
-    public E withEnclosedElement(final Elem<?> enclosedElement) {
+    public E enclosedElement(final Elem<?> enclosedElement) {
         this.enclosedElements.add(enclosedElement);
         return (E) this;
     }
 
     @Override
-    public E withEnclosedElements(final List<Elem<?>> enclosedElements) {
+    public E enclosedElements(final List<Elem<?>> enclosedElements) {
         this.enclosedElements.addAll(enclosedElements);
         return (E) this;
     }
@@ -80,7 +80,7 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
     }
 
     @Override
-    public E withModifier(final Modifier modifier) {
+    public E modifier(final Modifier modifier) {
         this.modifiers.add(modifier);
         return (E) this;
     }
@@ -95,7 +95,7 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
     }
 
     @Override
-    public E withAnnotation(final Annot a) {
+    public E annotation(final Annot a) {
         annotations.add(a);
         return (E) this;
     }

@@ -145,7 +145,9 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
             importClass(classType.asElement().getQualifiedName(), cu);
         }
 
-        classOrInterfaceTypeExpression.getTypeArguments().forEach(typeArg -> typeArg.accept(this, cu));
+        if (classOrInterfaceTypeExpression.getTypeArguments() != null) {
+            classOrInterfaceTypeExpression.getTypeArguments().forEach(typeArg -> typeArg.accept(this, cu));
+        }
 
         return null;
     }
@@ -159,7 +161,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitVariableDeclaration(final VariableDeclaration<?> variableDeclaration, final CompilationUnit cu) {
+    public Void visitVariableDeclaration(final VariableDeclaration variableDeclaration, final CompilationUnit cu) {
         variableDeclaration.getAnnotations().forEach(annotation -> annotation.accept(this, cu));
         variableDeclaration.getInitExpression().ifPresent(it -> it.accept(this, cu));
 
@@ -170,7 +172,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitClassDeclaration(final ClassDeclaration<?> classDeclaration, final CompilationUnit compilationUnit) {
+    public Void visitClassDeclaration(final ClassDeclaration classDeclaration, final CompilationUnit compilationUnit) {
         classDeclaration.getAnnotations().forEach(annotationExpression -> annotationExpression.accept(this, compilationUnit));
         classDeclaration.getEnclosed().forEach(enclosed -> enclosed.accept(this, compilationUnit));
         return null;
@@ -537,7 +539,7 @@ public class ImportOrganiser implements ElementVisitor<Void, CompilationUnit>,
     }
 
     @Override
-    public Void visitMethodDeclaration(final MethodDeclaration<?> methodDeclaration, final CompilationUnit compilationUnit) {
+    public Void visitMethodDeclaration(final MethodDeclaration methodDeclaration, final CompilationUnit compilationUnit) {
         methodDeclaration.getTypeParameters().forEach(typeParameter -> typeParameter.accept(this, compilationUnit));
         methodDeclaration.getAnnotations().forEach(annotationExpression -> annotationExpression.accept(this, compilationUnit));
         methodDeclaration.getParameters().forEach(parameter -> parameter.accept(this, compilationUnit));

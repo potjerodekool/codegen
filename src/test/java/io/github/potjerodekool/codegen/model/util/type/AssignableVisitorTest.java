@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AssignableVisitorTest {
 
     private final Environment environment = new Environment(ClassPath.getJavaClassPath());
-    private final Elements elements = environment.getElementUtils();
-    private final Types types = environment.getTypes();
+    private final Elements elements = environment.getKotlinElements();
+    private final Types types = environment.getKotlinTypes();
     private final AssignableVisitor assignableVisitor = new AssignableVisitor();
 
     @BeforeEach
