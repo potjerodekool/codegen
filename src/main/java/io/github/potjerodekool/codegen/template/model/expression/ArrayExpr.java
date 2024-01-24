@@ -1,5 +1,7 @@
 package io.github.potjerodekool.codegen.template.model.expression;
 
+import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
+
 import java.util.ArrayList;
 import java.util.List;
 

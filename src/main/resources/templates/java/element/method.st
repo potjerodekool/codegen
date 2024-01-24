@@ -1,4 +1,5 @@
 method(method) ::= <%
+    <method.annotations:{a|</java/element/annotation(a)>};separator="\n">
     </java/modifiers(method.modifiers)>
     <if(!method.modifiers.isEmpty)>
     <\ >

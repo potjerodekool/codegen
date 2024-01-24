@@ -1,6 +1,6 @@
 package io.github.potjerodekool.codegen.template.model.element;
 
-import io.github.potjerodekool.codegen.template.model.expression.TypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
 import io.github.potjerodekool.codegen.template.model.statement.BlockStm;
 
 import java.util.ArrayList;

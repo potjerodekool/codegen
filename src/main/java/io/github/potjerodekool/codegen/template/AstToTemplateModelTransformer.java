@@ -21,6 +21,10 @@ import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import io.github.potjerodekool.codegen.template.model.element.VariableElem;
 import io.github.potjerodekool.codegen.template.model.expression.*;
 import io.github.potjerodekool.codegen.template.model.statement.*;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.WildCardTypeExpr;
 
 public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object> {
     public TCompilationUnit transform(final CompilationUnit cu) {
@@ -67,6 +71,12 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
                 .modifiers(methodDeclaration.getModifiers())
                 .simpleName(methodDeclaration.getSimpleName().toString())
                 .returnType((TypeExpr) methodDeclaration.getReturnType().accept(this, param));
+
+        methodElement.annotations(
+                methodDeclaration.getAnnotations().stream()
+                        .map(annotationExpression -> (Annot) annotationExpression.accept(this, param))
+                        .toList()
+        );
 
         methodDeclaration.getParameters().stream()
                 .map(methodParam -> (VariableElem) methodParam.accept(this, param))

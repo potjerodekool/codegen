@@ -7,7 +7,7 @@ import io.github.potjerodekool.codegen.template.model.TCompilationUnit;
 import io.github.potjerodekool.codegen.template.model.annotation.Annot;
 import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import io.github.potjerodekool.codegen.template.model.element.VariableElem;
-import io.github.potjerodekool.codegen.template.model.expression.SimpleTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

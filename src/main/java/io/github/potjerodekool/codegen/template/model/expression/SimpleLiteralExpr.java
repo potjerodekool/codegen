@@ -8,6 +8,11 @@ public class SimpleLiteralExpr extends LiteralExpr {
         this.value = value;
     }
 
+    @Override
+    public boolean getIsNullLiteral() {
+        return value == null;
+    }
+
     public Object getValue() {
         if (value instanceof String) {
             return "\"" + value + "\"";

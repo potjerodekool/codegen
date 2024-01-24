@@ -1,3 +1,3 @@
 arrayExpression(arrayExpression) ::= <%
-{<arrayExpression.values:{value|</java/expression/expression(value)>}>}
+{<arrayExpression.values:{value|</java/expression/expression(value)>};separator = ", ">}
 %>

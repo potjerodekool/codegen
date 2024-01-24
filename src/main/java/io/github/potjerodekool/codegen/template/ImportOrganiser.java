@@ -10,6 +10,10 @@ import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import io.github.potjerodekool.codegen.template.model.element.VariableElem;
 import io.github.potjerodekool.codegen.template.model.expression.*;
 import io.github.potjerodekool.codegen.template.model.statement.*;
+import io.github.potjerodekool.codegen.template.model.type.ArrayTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.PrimitiveTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
 
 public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
         ExpressionVisitor<TCompilationUnit, Void>,
@@ -209,6 +213,16 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
 
     @Override
     public Void visitNewClassExpression(final NewClassExpr newClassExpr, final TCompilationUnit compilationUnit) {
+        return null;
+    }
+
+    @Override
+    public Void visitPrimitiveTypeExpression(final PrimitiveTypeExpr primitiveTypeExpr, final TCompilationUnit tCompilationUnit) {
+        return null;
+    }
+
+    @Override
+    public Void visitArrayTypeExpression(final ArrayTypeExpr arrayTypeExpr, final TCompilationUnit tCompilationUnit) {
         return null;
     }
 }

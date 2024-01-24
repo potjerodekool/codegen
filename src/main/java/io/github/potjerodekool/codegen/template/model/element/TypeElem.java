@@ -1,7 +1,7 @@
 package io.github.potjerodekool.codegen.template.model.element;
 
 import io.github.potjerodekool.codegen.model.element.ElementKind;
-import io.github.potjerodekool.codegen.template.model.expression.ClassOrInterfaceTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
 
 import java.util.ArrayList;
 import java.util.List;

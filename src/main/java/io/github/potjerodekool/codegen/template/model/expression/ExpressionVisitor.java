@@ -1,5 +1,10 @@
 package io.github.potjerodekool.codegen.template.model.expression;
 
+import io.github.potjerodekool.codegen.template.model.type.ArrayTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.PrimitiveTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
+
 public interface ExpressionVisitor<P, R> {
 
     R visitBinaryExpression(BinaryExpr binaryExpression, P p);
@@ -23,4 +28,8 @@ public interface ExpressionVisitor<P, R> {
     R visitFieldAccessExpression(FieldAccessExpr fieldAccessExpr, P p);
 
     R visitNewClassExpression(NewClassExpr newClassExpr, P p);
+
+    R visitPrimitiveTypeExpression(PrimitiveTypeExpr primitiveTypeExpr, P p);
+
+    R visitArrayTypeExpression(ArrayTypeExpr arrayTypeExpr, P p);
 }

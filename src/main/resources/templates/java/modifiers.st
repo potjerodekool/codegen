@@ -1,6 +1,3 @@
 modifiers(modifiers) ::= <%
-    <if(modifiers)>
-    <modifiers:{modifier | <modifier>};separator=" ">
-    <\ >
-    <endif>
+<modifiers:{modifier | <modifier>};separator=" ">
 %>

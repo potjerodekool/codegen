@@ -1,11 +1,9 @@
 package io.github.potjerodekool.codegen.template;
 
-import io.github.potjerodekool.codegen.ResourceLoader;
 import io.github.potjerodekool.codegen.model.tree.type.BoundKind;
 import io.github.potjerodekool.codegen.template.model.element.MethodElem;
-import io.github.potjerodekool.codegen.template.model.expression.ClassOrInterfaceTypeExpr;
-import io.github.potjerodekool.codegen.template.model.expression.SimpleTypeExpr;
-import io.github.potjerodekool.codegen.template.model.expression.WildCardTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.WildCardTypeExpr;
 import org.junit.jupiter.api.Test;
 
 import static io.github.potjerodekool.codegen.ResourceLoader.load;

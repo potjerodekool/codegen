@@ -9,6 +9,8 @@ public abstract class LiteralExpr implements Expr {
 
     public abstract Object getValue();
 
+    public abstract boolean getIsNullLiteral();
+
     @Override
     public <P, R> R accept(final ExpressionVisitor<P, R> visitor, final P p) {
         return visitor.visitLiteralExpression(this, p);

@@ -1,7 +1,7 @@
 literalExpression(literalExpression) ::= <%
-    <if(literalExpression.value)>
-    <literalExpression.value>
-    <else>
+    <if(literalExpression.isNullLiteral)>
     null
+    <else>
+    <literalExpression.value>
     <endif>
 %>

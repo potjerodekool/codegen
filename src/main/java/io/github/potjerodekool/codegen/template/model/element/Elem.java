@@ -51,5 +51,12 @@ public interface Elem<E extends Elem<E>> {
         return (E) this;
     }
 
+    default E annotations(final List<Annot> annotations) {
+        for (Annot annotation : annotations) {
+            annotation(annotation);
+        }
+        return (E) this;
+    }
+
     <P, R> R accept(ElementVisitor<P, R> visitor, P p);
 }

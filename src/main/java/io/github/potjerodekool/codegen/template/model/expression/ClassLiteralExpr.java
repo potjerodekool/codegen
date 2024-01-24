@@ -9,6 +9,11 @@ public class ClassLiteralExpr extends LiteralExpr {
     }
 
     @Override
+    public boolean getIsNullLiteral() {
+        return false;
+    }
+
+    @Override
     public Object getValue() {
         return className + ".class";
     }

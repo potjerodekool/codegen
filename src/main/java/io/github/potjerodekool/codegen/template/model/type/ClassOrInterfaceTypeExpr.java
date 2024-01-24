@@ -1,6 +1,7 @@
-package io.github.potjerodekool.codegen.template.model.expression;
+package io.github.potjerodekool.codegen.template.model.type;
 
-import io.github.potjerodekool.codegen.model.tree.type.TypeExpression;
+import io.github.potjerodekool.codegen.template.model.expression.ExpressionKind;
+import io.github.potjerodekool.codegen.template.model.expression.ExpressionVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,7 @@ public class ClassOrInterfaceTypeExpr implements TypeExpr {
         return this;
     }
 
-    public ClassOrInterfaceTypeExpr typeArguments(final TypeExpr... typeArgument) {
+    public ClassOrInterfaceTypeExpr typeArguments(final TypeExpr... typeArguments) {
         for (final TypeExpr argument : typeArguments) {
             typeArgument(argument);
         }

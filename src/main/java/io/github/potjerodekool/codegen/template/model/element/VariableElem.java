@@ -1,7 +1,7 @@
 package io.github.potjerodekool.codegen.template.model.element;
 
 import io.github.potjerodekool.codegen.template.model.expression.Expr;
-import io.github.potjerodekool.codegen.template.model.expression.TypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
 
 public class VariableElem extends AbstractElem<VariableElem> {
 

@@ -2,7 +2,7 @@ package io.github.potjerodekool.codegen.template.model.statement;
 
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.template.model.expression.Expr;
-import io.github.potjerodekool.codegen.template.model.expression.TypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
 
 import java.util.*;
 

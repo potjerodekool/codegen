@@ -1,4 +1,8 @@
-package io.github.potjerodekool.codegen.template.model.expression;
+package io.github.potjerodekool.codegen.template.model.type;
+
+import io.github.potjerodekool.codegen.template.model.expression.ExpressionKind;
+import io.github.potjerodekool.codegen.template.model.expression.ExpressionVisitor;
+import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
 
 public class SimpleTypeExpr implements TypeExpr {
 
