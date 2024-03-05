@@ -1,8 +1,6 @@
 expression(expression) ::= <%
-    <if(expression.kind.isCLASS_OR_INTERFACE)>
-    </java/expression/classOrInterfaceExpression(expression)>
-    <elseif(expression.kind.isTYPE)>
-    </java/expression/classOrInterfaceExpression(expression)>
+    <if(expression.kind.isTYPE)>
+    </java/type/type(expression)>
     <elseif(expression.kind.isBINARY)>
     </java/expression/binaryExpression(expression)>
     <elseif(expression.kind.isUNARY)>

@@ -75,6 +75,12 @@ public class MethodInvocationExpr implements Expr {
         return this;
     }
 
+    public MethodInvocationExpr invoke(final String name) {
+        return new MethodInvocationExpr()
+                .target(this)
+                .name(name);
+    }
+
     @Override
     public ExpressionKind getKind() {
         return ExpressionKind.METHOD_INVOCATION;

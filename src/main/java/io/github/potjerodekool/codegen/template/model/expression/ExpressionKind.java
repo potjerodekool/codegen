@@ -4,7 +4,6 @@ public enum ExpressionKind {
 
     ANNOTATION,
     BINARY,
-    CLASS_OR_INTERFACE,
     TYPE,
     WILDCARD,
     IDENTIFIER,

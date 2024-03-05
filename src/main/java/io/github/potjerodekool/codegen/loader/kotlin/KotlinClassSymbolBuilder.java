@@ -1,9 +1,9 @@
 package io.github.potjerodekool.codegen.loader.kotlin;
 
-import io.github.potjerodekool.codegen.model.element.*;
+import io.github.potjerodekool.codegen.model.element.ElementKind;
+import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.symbol.ClassSymbol;
 import io.github.potjerodekool.codegen.model.symbol.TypeVariableSymbol;
-import io.github.potjerodekool.codegen.model.symbol.kotlin.KClassSymbolBuilder;
 import io.github.potjerodekool.codegen.model.type.ClassType;
 import io.github.potjerodekool.codegen.model.util.QualifiedName;
 import io.github.potjerodekool.codegen.model.util.SymbolTable;

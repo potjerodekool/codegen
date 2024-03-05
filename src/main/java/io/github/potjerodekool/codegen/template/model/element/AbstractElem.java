@@ -36,7 +36,6 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
         return (E) this;
     }
 
-    @Override
     public ElementKind getKind() {
         return kind;
     }

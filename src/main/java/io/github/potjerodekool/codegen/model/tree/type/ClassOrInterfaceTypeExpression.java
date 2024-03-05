@@ -4,6 +4,7 @@ import io.github.potjerodekool.codegen.model.element.Name;
 import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.AbstractExpression;
 import io.github.potjerodekool.codegen.model.type.TypeKind;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,6 +82,12 @@ public class ClassOrInterfaceTypeExpression extends AbstractExpression implement
         for (final TypeExpression typeArgument : typeArguments) {
             typeArgument(typeArgument);
         }
+        return this;
+    }
+
+    @Override
+    public TypeExpression asNonNullableType() {
+        setNullable(false);
         return this;
     }
 }

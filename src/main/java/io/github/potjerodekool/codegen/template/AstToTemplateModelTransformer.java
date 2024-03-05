@@ -9,10 +9,8 @@ import io.github.potjerodekool.codegen.model.tree.TreeVisitor;
 import io.github.potjerodekool.codegen.model.tree.expression.*;
 import io.github.potjerodekool.codegen.model.tree.statement.*;
 import io.github.potjerodekool.codegen.model.tree.type.*;
-import io.github.potjerodekool.codegen.model.type.ArrayType;
-import io.github.potjerodekool.codegen.model.type.ClassType;
-import io.github.potjerodekool.codegen.model.type.PrimitiveType;
-import io.github.potjerodekool.codegen.model.type.TypeKind;
+import io.github.potjerodekool.codegen.model.type.*;
+import io.github.potjerodekool.codegen.model.type.immutable.WildcardType;
 import io.github.potjerodekool.codegen.template.model.TCompilationUnit;
 import io.github.potjerodekool.codegen.template.model.annotation.Annot;
 import io.github.potjerodekool.codegen.template.model.element.Elem;
@@ -21,12 +19,11 @@ import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import io.github.potjerodekool.codegen.template.model.element.VariableElem;
 import io.github.potjerodekool.codegen.template.model.expression.*;
 import io.github.potjerodekool.codegen.template.model.statement.*;
-import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.WildCardTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.*;
 
-public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object> {
+public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object>,
+        TypeVisitor<Object, Object> {
+
     public TCompilationUnit transform(final CompilationUnit cu) {
         final var unit = new TCompilationUnit(cu.getLanguage());
         unit.packageName(cu.getPackageDeclaration().getName().getName());
@@ -137,7 +134,7 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
     @Override
     public Object visitNoType(final NoTypeExpression noTypeExpression, final Object param) {
         if (noTypeExpression.getKind() == TypeKind.VOID) {
-            return new SimpleTypeExpr("void");
+            return NoTypeExpr.createVoidType();
         } else {
             throw new UnsupportedOperationException("Unsupported type: " + noTypeExpression.getKind());
         }
@@ -294,13 +291,14 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
     @Override
     public Object visitArrayTypeExpresion(final ArrayTypeExpression arrayTypeExpression, final Object param) {
         final var type = (ClassType) ((ArrayType) arrayTypeExpression.getType()).getComponentType();
-        return new SimpleTypeExpr(type.asElement().getQualifiedName() + "[]");
+        final TypeExpr componentType = (TypeExpr) type.accept(this, param);
+        return new ArrayTypeExpr(componentType);
     }
 
     @Override
     public Object visitPrimitiveTypeExpression(final PrimitiveTypeExpression primitiveTypeExpression, final Object param) {
         final var type = (PrimitiveType) primitiveTypeExpression.getType();
-        return new SimpleTypeExpr(getPrimitiveTypeName(type));
+        return new PrimitiveTypeExpr(type.getKind());
     }
 
     private String getPrimitiveTypeName(final PrimitiveType type) {
@@ -341,12 +339,82 @@ public class AstToTemplateModelTransformer implements TreeVisitor<Object, Object
 
     @Override
     public Object visitVarTypeExpression(final VarTypeExpression varTypeExpression, final Object param) {
-        return new SimpleTypeExpr("var");
+        return new VarTypeExp();
     }
 
     private <T> T accept(final Tree tree, final Object param) {
         return tree != null
                 ? (T) tree.accept(this, param)
                 : null;
+    }
+
+    @Override
+    public Object visit(final TypeMirror t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitPrimitive(final PrimitiveType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitNull(final NullType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitArray(final ArrayType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitDeclared(final DeclaredType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitError(final ErrorType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitTypeVariable(final TypeVariable t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitWildcard(final WildcardType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitExecutable(final ExecutableType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitNoType(final NoType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitUnknown(final TypeMirror t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitUnion(final UnionType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitIntersection(final IntersectionType t, final Object param) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object visitVarType(final VarType varType, final Object object) {
+        throw new UnsupportedOperationException();
     }
 }

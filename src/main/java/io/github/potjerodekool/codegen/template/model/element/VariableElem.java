@@ -1,6 +1,10 @@
 package io.github.potjerodekool.codegen.template.model.element;
 
+import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.template.model.expression.Expr;
+import io.github.potjerodekool.codegen.template.model.statement.StatementKind;
+import io.github.potjerodekool.codegen.template.model.statement.StatementVisitor;
+import io.github.potjerodekool.codegen.template.model.statement.Stm;
 import io.github.potjerodekool.codegen.template.model.type.TypeExpr;
 
 public class VariableElem extends AbstractElem<VariableElem> {

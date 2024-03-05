@@ -1,11 +1,13 @@
 package io.github.potjerodekool.codegen.template.model.annotation;
 
 
+import io.github.potjerodekool.codegen.template.model.expression.ArrayExpr;
 import io.github.potjerodekool.codegen.template.model.expression.Expr;
 import io.github.potjerodekool.codegen.template.model.expression.ExpressionKind;
 import io.github.potjerodekool.codegen.template.model.expression.ExpressionVisitor;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Annot implements Expr {
@@ -33,18 +35,23 @@ public class Annot implements Expr {
 
 
     public Annot value(final Expr value) {
-        values.put("value", value);
-        return this;
+        return value("value", value);
+    }
+
+    public <E extends Expr> Annot value(final List<E> values) {
+        return value("value", new ArrayExpr().values(values));
     }
 
     public Annot value(final String key,
-                           final Expr value) {
-        values.put(key, value);
+                       final Expr value) {
+        this.values.put(key, value);
         return this;
     }
 
-    public <P, R> R accept(final AnnotationVisitor<P,R> visitor, final P param) {
-        return visitor.visitAnnotation(this, param);
+    public <E extends Expr> Annot value(final String key,
+                                        final List<E> values) {
+        this.values.put(key, new ArrayExpr().values(values));
+        return this;
     }
 
     @Override
@@ -53,8 +60,8 @@ public class Annot implements Expr {
     }
 
     @Override
-    public <P, R> R accept(final ExpressionVisitor<P, R> visitor, final P p) {
-        return null;
+    public <P, R> R accept(final ExpressionVisitor<P, R> visitor, final P param) {
+        return visitor.visitAnnotation(this, param);
     }
 }
 

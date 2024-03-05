@@ -10,6 +10,6 @@ statement(statement) ::= <%
 <elseif(statement.kind.isSTATEMENT_EXPRESSION)>
 <\t></java/statement/statementExpresion(statement)>;
 <else>
-<\t>unnknown statement <statement.kind>
+<\t>unnknown statement <statement.stateKind>
 <endif>
 %>

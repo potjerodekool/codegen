@@ -1,9 +1,7 @@
 package io.github.potjerodekool.codegen.template.model.expression;
 
-import io.github.potjerodekool.codegen.template.model.type.ArrayTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.PrimitiveTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
+import io.github.potjerodekool.codegen.template.model.annotation.Annot;
+import io.github.potjerodekool.codegen.template.model.type.*;
 
 public interface ExpressionVisitor<P, R> {
 
@@ -23,8 +21,6 @@ public interface ExpressionVisitor<P, R> {
 
     R visitPropertyAccessExpression(PropertyAccessExpr propertyAccessExpression, P p);
 
-    R visitTypeExpression(SimpleTypeExpr simpleTypeExpr, P p);
-
     R visitFieldAccessExpression(FieldAccessExpr fieldAccessExpr, P p);
 
     R visitNewClassExpression(NewClassExpr newClassExpr, P p);
@@ -32,4 +28,10 @@ public interface ExpressionVisitor<P, R> {
     R visitPrimitiveTypeExpression(PrimitiveTypeExpr primitiveTypeExpr, P p);
 
     R visitArrayTypeExpression(ArrayTypeExpr arrayTypeExpr, P p);
+
+    R visitNoTypeExpression(NoTypeExpr noTypeExpr, P p);
+
+    R visitVarTypeExpression(VarTypeExp varTypeExp, P p);
+
+    R visitAnnotation(Annot annot, P param);
 }

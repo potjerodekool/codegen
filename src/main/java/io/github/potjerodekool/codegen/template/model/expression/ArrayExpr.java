@@ -39,7 +39,7 @@ public class ArrayExpr implements Expr {
         return this;
     }
 
-    public ArrayExpr values(final List<Expr> values) {
+    public <E extends Expr> ArrayExpr values(final List<E> values) {
         this.values.addAll(values);
         return this;
     }

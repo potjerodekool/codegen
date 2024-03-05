@@ -43,12 +43,18 @@ public enum TypeKind {
 
     INTERSECTION,
 
-    MODULE;
+    MODULE,
+
+    VAR;
 
     public boolean isPrimitive() {
         return switch (this) {
             case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE -> true;
             default -> false;
         };
+    }
+
+    public boolean isNoneType() {
+        return this == NONE || this == VOID;
     }
 }

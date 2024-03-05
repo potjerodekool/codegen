@@ -11,4 +11,5 @@ public interface StatementVisitor<P, R> {
     R visitStatementExpression(ExpressionStm statementExpression, P param);
 
     R visitVariableDeclarationStatement(VariableDeclarationStm variableDeclarationStatement, P param);
+
 }

@@ -7,7 +7,7 @@ import io.github.potjerodekool.codegen.template.model.TCompilationUnit;
 import io.github.potjerodekool.codegen.template.model.annotation.Annot;
 import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import io.github.potjerodekool.codegen.template.model.element.VariableElem;
-import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +24,7 @@ public class FieldTest extends TemplateTest {
                 .enclosedElement(
                         new VariableElem()
                                 .kind(ElementKind.FIELD)
-                                .type(new SimpleTypeExpr("java.lang.String"))
+                                .type(new ClassOrInterfaceTypeExpr("java.lang.String"))
                                 .simpleName("someField")
                                 .annotation(new Annot("org.some.Annot"))
                 );

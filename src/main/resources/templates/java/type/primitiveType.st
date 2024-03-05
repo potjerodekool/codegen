@@ -1,0 +1,3 @@
+primitiveType(primitiveType)::= <%
+<primitiveType.name>
+%>

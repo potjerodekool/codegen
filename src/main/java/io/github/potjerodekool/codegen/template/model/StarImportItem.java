@@ -1,11 +1,16 @@
 package io.github.potjerodekool.codegen.template.model;
 
-public class StarImportItem implements ImportItem {
+public final class StarImportItem implements ImportItem {
 
     private final String name;
 
     public StarImportItem(final String name) {
         this.name = name;
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 
     @Override

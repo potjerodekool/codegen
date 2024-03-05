@@ -1,24 +1,21 @@
 package io.github.potjerodekool.codegen.template;
 
+import io.github.potjerodekool.codegen.template.model.ImportItem;
+import io.github.potjerodekool.codegen.template.model.StarImportItem;
 import io.github.potjerodekool.codegen.template.model.TCompilationUnit;
 import io.github.potjerodekool.codegen.template.model.QualifiedImportItem;
 import io.github.potjerodekool.codegen.template.model.annotation.Annot;
-import io.github.potjerodekool.codegen.template.model.annotation.AnnotationVisitor;
 import io.github.potjerodekool.codegen.template.model.element.ElementVisitor;
 import io.github.potjerodekool.codegen.template.model.element.MethodElem;
 import io.github.potjerodekool.codegen.template.model.element.TypeElem;
 import io.github.potjerodekool.codegen.template.model.element.VariableElem;
 import io.github.potjerodekool.codegen.template.model.expression.*;
 import io.github.potjerodekool.codegen.template.model.statement.*;
-import io.github.potjerodekool.codegen.template.model.type.ArrayTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.PrimitiveTypeExpr;
-import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.*;
 
 public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
         ExpressionVisitor<TCompilationUnit, Void>,
-        StatementVisitor<TCompilationUnit, Void>,
-        AnnotationVisitor<TCompilationUnit, Void> {
+        StatementVisitor<TCompilationUnit, Void> {
 
     public void organiseImports(final TCompilationUnit compilationUnit) {
         compilationUnit.getElements().forEach(element -> element.accept(this, compilationUnit));
@@ -28,13 +25,13 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
     @Override
     public Void visitExecutableElement(final MethodElem methodElement,
                                        final TCompilationUnit compilationUnit) {
-        methodElement.getAnnotations().forEach(annotation -> annotation.accept((AnnotationVisitor) this, compilationUnit));
+        methodElement.getAnnotations().forEach(annotation -> annotation.accept(this, compilationUnit));
 
         if (methodElement.getReturnType() != null) {
             methodElement.getReturnType().accept(this, compilationUnit);
         }
 
-        methodElement.getParameters().forEach(parameter -> parameter.accept(this, compilationUnit));
+        methodElement.getParameters().forEach(parameter -> parameter.accept((ElementVisitor<? super TCompilationUnit, ?>) this, compilationUnit));
 
         if (methodElement.getBody() != null) {
             methodElement.getBody().accept(this, compilationUnit);
@@ -46,14 +43,14 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
     @Override
     public Void visitTypeElement(final TypeElem typeElement,
                                  final TCompilationUnit compilationUnit) {
-        typeElement.getAnnotations().forEach(annotation -> annotation.accept((AnnotationVisitor)this, compilationUnit));
+        typeElement.getAnnotations().forEach(annotation -> annotation.accept(this, compilationUnit));
         typeElement.getEnclosedElements().forEach(element -> element.accept(this, compilationUnit));
         return null;
     }
 
     @Override
     public Void visitVariableElement(final VariableElem variableElement, final TCompilationUnit compilationUnit) {
-        variableElement.getAnnotations().forEach(annotation -> annotation.accept((AnnotationVisitor) this, compilationUnit));
+        variableElement.getAnnotations().forEach(annotation -> annotation.accept(this, compilationUnit));
         variableElement.getType().accept(this, compilationUnit);
         return null;
     }
@@ -74,6 +71,10 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
             classOrInterfaceTypeExpression.name(simpleName);
         }
 
+        if (classOrInterfaceTypeExpression.getTypeArguments() != null) {
+            classOrInterfaceTypeExpression.getTypeArguments().forEach(typeArgument -> typeArgument.accept(this, compilationUnit));
+        }
+
         return null;
     }
 
@@ -92,8 +93,8 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
             }
         }
 
-        final var importItems =  compilationUnit.getImports().stream()
-                .filter(importItem -> importItem.isImportFor(importName))
+        final var importItems = compilationUnit.getImports().stream()
+                .filter(importItem -> isMatch(importItem, importName))
                 .toList();
 
         if (importItems.isEmpty()) {
@@ -106,6 +107,28 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
             return qualifiedCount == 1;
         }
     }
+
+    private boolean isMatch(final ImportItem importItem,
+                            final String className) {
+        if (importItem instanceof QualifiedImportItem qualifiedImportItem) {
+            final var importName = qualifiedImportItem.getName();
+
+            if (className.equals(importName)) {
+                //class names matches
+                return true;
+            } else {
+                //Simple name matches
+                final var simpleImportName = getSimpleName(importName);
+                final var simpleClassName = getSimpleName(className);
+                return simpleClassName.equals(simpleImportName);
+            }
+        } else if (importItem instanceof StarImportItem) {
+            return true;
+        } else {
+            return true;
+        }
+    }
+
 
     @Override
     public Void visitIdentifierExpression(final IdentifierExpr identifierExpression, final TCompilationUnit compilationUnit) {
@@ -130,6 +153,13 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
 
     @Override
     public Void visitLiteralExpression(final LiteralExpr literalExpression, final TCompilationUnit compilationUnit) {
+        if (literalExpression instanceof ClassLiteralExpr classLiteralExpr) {
+            if (addImport(compilationUnit, classLiteralExpr.getClassName())) {
+                final var simpleName = getSimpleName(classLiteralExpr.getClassName());
+                classLiteralExpr.className(simpleName);
+            }
+        }
+
         return null;
     }
 
@@ -147,11 +177,6 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
         if (propertyAccessExpression.getTarget() != null) {
             propertyAccessExpression.getTarget().accept(this, compilationUnit);
         }
-        return null;
-    }
-
-    @Override
-    public Void visitTypeExpression(final SimpleTypeExpr simpleTypeExpr, final TCompilationUnit compilationUnit) {
         return null;
     }
 
@@ -203,11 +228,20 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
         if (addImport(compilationUnit, annotation.getName())) {
             annotation.name(getSimpleName(annotation.getName()));
         }
+
+        annotation.getValues().values().forEach(expression -> expression.accept(this, compilationUnit));
+
         return null;
     }
 
     @Override
     public Void visitFieldAccessExpression(final FieldAccessExpr fieldAccessExpr, final TCompilationUnit compilationUnit) {
+        final var target = fieldAccessExpr.getTarget();
+
+        if (target != null) {
+            target.accept(this, compilationUnit);
+        }
+
         return null;
     }
 
@@ -223,6 +257,16 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
 
     @Override
     public Void visitArrayTypeExpression(final ArrayTypeExpr arrayTypeExpr, final TCompilationUnit tCompilationUnit) {
+        return null;
+    }
+
+    @Override
+    public Void visitNoTypeExpression(final NoTypeExpr noTypeExpr, final TCompilationUnit tCompilationUnit) {
+        return null;
+    }
+
+    @Override
+    public Void visitVarTypeExpression(final VarTypeExp varTypeExp, final TCompilationUnit tCompilationUnit) {
         return null;
     }
 }

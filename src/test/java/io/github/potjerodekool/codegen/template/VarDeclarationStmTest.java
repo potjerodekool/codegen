@@ -7,7 +7,8 @@ import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.template.model.TCompilationUnit;
 import io.github.potjerodekool.codegen.template.model.element.MethodElem;
 import io.github.potjerodekool.codegen.template.model.element.TypeElem;
-import io.github.potjerodekool.codegen.template.model.type.SimpleTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.ClassOrInterfaceTypeExpr;
+import io.github.potjerodekool.codegen.template.model.type.NoTypeExpr;
 import io.github.potjerodekool.codegen.template.model.statement.BlockStm;
 import io.github.potjerodekool.codegen.template.model.statement.VariableDeclarationStm;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ public class VarDeclarationStmTest extends TemplateTest {
 
         final var method = new MethodElem()
                 .kind(ElementKind.METHOD)
-                .returnType(new SimpleTypeExpr("void"))
+                .returnType(NoTypeExpr.createVoidType())
                 .simpleName("someMethod");
 
         final var body = new BlockStm();
@@ -34,7 +35,7 @@ public class VarDeclarationStmTest extends TemplateTest {
 
         body.statement(new VariableDeclarationStm()
                 .modifier(Modifier.FINAL)
-                .type(new SimpleTypeExpr("java.lang.String"))
+                .type(new ClassOrInterfaceTypeExpr("java.lang.String"))
                 .identifier("myVar")
         );
 

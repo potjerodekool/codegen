@@ -4,16 +4,16 @@ import io.github.potjerodekool.codegen.model.type.TypeKind;
 import io.github.potjerodekool.codegen.template.model.expression.ExpressionKind;
 import io.github.potjerodekool.codegen.template.model.expression.ExpressionVisitor;
 
-public class ArrayTypeExpr implements TypeExpr {
+public class NoTypeExpr implements TypeExpr {
 
-    private final TypeExpr componentType;
+    private final TypeKind typeKind;
 
-    public ArrayTypeExpr(final TypeExpr componentType) {
-        this.componentType = componentType;
+    private NoTypeExpr(final TypeKind typeKind) {
+        this.typeKind = typeKind;
     }
 
-    public TypeExpr getComponentType() {
-        return componentType;
+    public static NoTypeExpr createVoidType() {
+        return new NoTypeExpr(TypeKind.VOID);
     }
 
     @Override
@@ -23,11 +23,11 @@ public class ArrayTypeExpr implements TypeExpr {
 
     @Override
     public TypeKind getTypeKind() {
-        return TypeKind.ARRAY;
+        return typeKind;
     }
 
     @Override
     public <P, R> R accept(final ExpressionVisitor<P, R> visitor, final P p) {
-        return visitor.visitArrayTypeExpression(this, p);
+        return visitor.visitNoTypeExpression(this, p);
     }
 }

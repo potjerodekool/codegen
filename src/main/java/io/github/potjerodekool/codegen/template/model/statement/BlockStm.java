@@ -1,5 +1,7 @@
 package io.github.potjerodekool.codegen.template.model.statement;
 
+import io.github.potjerodekool.codegen.template.model.expression.Expr;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +27,10 @@ public class BlockStm implements Stm {
     public BlockStm statement(final Stm statement) {
         this.statements.add(statement);
         return this;
+    }
+
+    public BlockStm statement(final Expr expr) {
+        return statement(new ExpressionStm(expr));
     }
 
     @Override
