@@ -1,10 +1,7 @@
 package io.github.potjerodekool.codegen.template.model.annotation;
 
 
-import io.github.potjerodekool.codegen.template.model.expression.ArrayExpr;
-import io.github.potjerodekool.codegen.template.model.expression.Expr;
-import io.github.potjerodekool.codegen.template.model.expression.ExpressionKind;
-import io.github.potjerodekool.codegen.template.model.expression.ExpressionVisitor;
+import io.github.potjerodekool.codegen.template.model.expression.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +11,12 @@ public class Annot implements Expr {
 
     private String name;
 
-    private final Map<String, Expr> values = new HashMap<>();
+    private final Map<String, Expr> attributes = new HashMap<>();
+
+    private AnnotTarget target;
+
+    public Annot() {
+    }
 
     public Annot(final String name) {
         this.name = name;
@@ -29,28 +31,76 @@ public class Annot implements Expr {
         return this;
     }
 
+    @Deprecated
     public Map<String, Expr> getValues() {
-        return values;
+        return getAttributes();
     }
 
+    public Map<String, Expr> getAttributes() {
+        return attributes;
+    }
+
+    @Deprecated
 
     public Annot value(final Expr value) {
-        return value("value", value);
+        return attribute("value", value);
     }
 
+    public Annot attribute(final Expr value) {
+        return attribute("value", value);
+    }
+
+    @Deprecated
     public <E extends Expr> Annot value(final List<E> values) {
-        return value("value", new ArrayExpr().values(values));
+        return attribute("value", new ArrayExpr().values(values));
     }
 
+    public <E extends Expr> Annot attribute(final List<E> values) {
+        return attribute("value", new ArrayExpr().values(values));
+    }
+
+    @Deprecated
     public Annot value(final String key,
                        final Expr value) {
-        this.values.put(key, value);
+        return attribute(key, value);
+    }
+
+    public Annot attribute(final String key,
+                           final Expr value) {
+        this.attributes.put(key, value);
         return this;
     }
 
+    @Deprecated
+    public Annot value(final String key,
+                       final String value) {
+        return attribute(key, value);
+    }
+
+    public Annot attribute(final String key,
+                           final String value) {
+        this.attributes.put(key, new SimpleLiteralExpr(value));
+        return this;
+    }
+
+    @Deprecated
     public <E extends Expr> Annot value(final String key,
                                         final List<E> values) {
-        this.values.put(key, new ArrayExpr().values(values));
+        return attribute(key, values);
+    }
+
+    public <E extends Expr> Annot attribute(final String key,
+                                            final List<E> values) {
+        this.attributes.put(key, new ArrayExpr().values(values));
+        return this;
+    }
+
+    public AnnotTarget getTarget() {
+        return target;
+    }
+
+    public Annot target(final AnnotTarget target) {
+        this.target = target;
         return this;
     }
 

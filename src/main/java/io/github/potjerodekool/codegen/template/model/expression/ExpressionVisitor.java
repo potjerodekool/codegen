@@ -34,4 +34,6 @@ public interface ExpressionVisitor<P, R> {
     R visitVarTypeExpression(VarTypeExp varTypeExp, P p);
 
     R visitAnnotation(Annot annot, P param);
+
+    R visitTypeVarExpression(TypeVarExpr typeVarExpr, P p);
 }

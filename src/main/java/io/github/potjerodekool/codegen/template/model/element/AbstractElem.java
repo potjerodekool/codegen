@@ -4,10 +4,7 @@ import io.github.potjerodekool.codegen.model.element.ElementKind;
 import io.github.potjerodekool.codegen.model.element.Modifier;
 import io.github.potjerodekool.codegen.template.model.annotation.Annot;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E> {
 
@@ -91,6 +88,12 @@ public abstract class AbstractElem<E extends AbstractElem<E>> implements Elem<E>
 
     public List<Annot> getAnnotations() {
         return annotations;
+    }
+
+    public Optional<Annot> findAnnotationByName(final String name) {
+        return getAnnotations().stream()
+                .filter(a -> a.getName().equals(name))
+                .findFirst();
     }
 
     @Override

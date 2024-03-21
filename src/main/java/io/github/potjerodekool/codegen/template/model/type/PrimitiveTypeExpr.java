@@ -17,7 +17,7 @@ public class PrimitiveTypeExpr implements TypeExpr {
         this.name = switch (typeKind) {
             case BOOLEAN -> "boolean";
             case BYTE -> "byte";
-            case SHORT ->  "short";
+            case SHORT -> "short";
             case INT ->  "int";
             case LONG -> "long";
             case CHAR -> "char";

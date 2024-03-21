@@ -235,6 +235,15 @@ public class ImportOrganiser implements ElementVisitor<TCompilationUnit, Void>,
     }
 
     @Override
+    public Void visitTypeVarExpression(final TypeVarExpr typeVarExpr, final TCompilationUnit compilationUnit) {
+        if (typeVarExpr.getBounds() != null) {
+            typeVarExpr.getBounds().accept(this, compilationUnit);
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitFieldAccessExpression(final FieldAccessExpr fieldAccessExpr, final TCompilationUnit compilationUnit) {
         final var target = fieldAccessExpr.getTarget();
 

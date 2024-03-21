@@ -22,4 +22,9 @@ public class SimpleLiteralExpr extends LiteralExpr {
             return value;
         }
     }
+
+    @Override
+    public String toString() {
+        return (String) getValue();
+    }
 }
